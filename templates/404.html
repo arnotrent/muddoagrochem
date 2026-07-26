@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% load icons %}
+{% block title %}Page Not Found — Muddo Agro{% endblock %}
+{% block content %}
+<section style="min-height:70vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:60px 20px">
+  <div>
+    <div style="font-size:6rem;font-weight:800;color:var(--accent-blue);margin-bottom:8px">404</div>
+    <h1 style="font-size:1.8rem;margin-bottom:12px">Page Not Found</h1>
+    <p style="color:var(--text-3);max-width:40ch;margin:0 auto 32px">The page you're looking for doesn't exist or has been moved.</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <a href="{% url 'index' %}" class="btn-primary">{% icon "home" %}Go Home</a>
+      <a href="{% url 'pesticides' %}" class="btn-outline">{% icon "flask" %}Browse Products</a>
+      <a href="{% url 'contact' %}" class="btn-outline">{% icon "envelope" %}Contact Us</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

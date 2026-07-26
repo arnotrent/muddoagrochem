@@ -1,0 +1,36 @@
+{% extends "admin/base_admin.html" %}{% load icons %}
+{% block title %}Field Agents{% endblock %}{% block page_icon %}{% icon "users" %}{% endblock %}{% block page_heading %}Field Agents{% endblock %}
+{% block content %}
+<div style="display:grid;grid-template-columns:360px 1fr;gap:20px">
+  <div class="admin-card" style="align-self:start">
+    <div class="admin-card-header"><div class="admin-card-title">{% icon "user-plus" %}Add New Agent</div></div>
+    <div class="admin-card-body"><form method="POST" action="{% url 'admin_add_agent' %}">{% csrf_token %}
+      <div class="admin-form-group"><label>Full Name <span>*</span></label><input name="name" class="admin-input" required></div>
+      <div class="admin-form-group"><label>Username <span>*</span></label><input name="username" class="admin-input" required></div>
+      <div class="admin-form-group"><label>Email</label><input name="email" type="email" class="admin-input"></div>
+      <div class="admin-form-group"><label>Phone</label><input name="phone" class="admin-input"></div>
+      <div class="admin-form-group"><label>Region</label><select name="region" class="admin-input"><option value="Central">Central</option><option value="Eastern">Eastern</option><option value="Northern">Northern</option><option value="Western">Western</option></select></div>
+      <div class="admin-form-group"><label>District</label><input name="district" class="admin-input"></div>
+      <div class="admin-form-group"><label>Password <span>*</span></label><input name="password" type="password" class="admin-input" required></div>
+      <button type="submit" class="btn-admin btn-primary-admin">{% icon "user-plus" %}Add Agent</button>
+    </form></div>
+  </div>
+  <div class="admin-card" style="align-self:start">
+    <div class="admin-card-header"><div class="admin-card-title">{% icon "list" %}All Agents ({{ agents|length }})</div></div>
+    <div class="tbl-wrap"><table class="data-table"><thead><tr><th>Agent</th><th>Region</th><th>Phone</th><th>Status</th><th>Last Active</th><th>Actions</th></tr></thead>
+    <tbody>{% for a in agents %}<tr>
+      <td><div style="display:flex;align-items:center;gap:10px"><div style="width:36px;height:36px;border-radius:50%;background:var(--accent-blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.86rem;flex-shrink:0">{{ a.name|first|upper }}</div><div><strong>{{ a.name }}</strong><br><small style="color:var(--text-3);font-size:.75rem">@{{ a.username }}</small></div></div></td>
+      <td style="font-size:.85rem">{{ a.region|default:"—" }}<br><small style="color:var(--text-3)">{{ a.district|default:"" }}</small></td>
+      <td><a href="tel:{{ a.phone }}" style="color:var(--accent-blue);font-size:.86rem">{{ a.phone|default:"—" }}</a></td>
+      <td><span class="badge badge-{{ a.status }}">{{ a.status|title }}</span></td>
+      <td style="font-size:.78rem;color:var(--text-3)">{% if a.last_seen %}{{ a.last_seen|date:"d M Y H:i" }}{% else %}Never{% endif %}</td>
+      <td><div style="display:flex;gap:5px;flex-wrap:wrap">
+        <a href="{% url 'admin_chat' %}" class="btn-admin btn-secondary-admin" style="padding:5px 8px;font-size:.76rem">{% icon "comment" %}</a>
+        <a href="{% url 'agent_report' a.id %}" class="btn-admin btn-secondary-admin" style="padding:5px 8px;font-size:.76rem">{% icon "file-pdf" %}</a>
+        <form method="POST" action="{% url 'admin_toggle_agent' a.id %}" style="display:inline">{% csrf_token %}<button type="submit" class="btn-admin btn-secondary-admin" style="padding:5px 8px;font-size:.76rem">{% if a.status == 'active' %}{% icon "pause" %}{% else %}{% icon "play" %}{% endif %}</button></form>
+        <form method="POST" action="{% url 'admin_delete_agent' a.id %}" style="display:inline" class="js-confirm-submit" data-confirm-title="Delete this agent?" data-confirm-body="&quot;{{ a.name }}&quot; and their account will be permanently removed.">{% csrf_token %}<button type="submit" class="btn-admin btn-danger-admin" style="padding:5px 8px;font-size:.76rem">{% icon "trash" %}</button></form>
+      </div></td>
+    </tr>{% empty %}<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:32px">No agents yet.</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+</div>{% endblock %}

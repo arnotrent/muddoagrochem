@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: muddo-agro-chemicals
+    env: python
+    buildCommand: >
+      pip install -r requirements.txt &&
+      python manage.py check --fail-level ERROR &&
+      python manage.py migrate --noinput &&
+      python manage.py collectstatic --noinput &&
+      python manage.py seed_data
+    startCommand: gunicorn muddo_project.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: GA_MEASUREMENT_ID
+        sync: false
+      - key: GOOGLE_MAPS_KEY
+        sync: false
+      - key: WHATSAPP_NUMBER
+        value: "256772507582"
+    plan: free

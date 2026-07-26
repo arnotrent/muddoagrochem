@@ -1,0 +1,92 @@
+{% load static icons %}<!DOCTYPE html>
+<html lang="en" data-theme="light"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Staff Login — Muddo Agro</title>
+<link rel="icon" type="image/png" href="{% static 'images/logo_full.png' %}">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/theme_vars.css' %}">
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+<script>(function(){var t=localStorage.getItem('muddo-theme')||'light';document.documentElement.setAttribute('data-theme',t)})();</script>
+<style>
+body{margin:0;min-height:100vh}
+.split-wrap{display:grid;grid-template-columns:1.1fr 1fr;min-height:100vh}
+@media(max-width:860px){.split-wrap{grid-template-columns:1fr}.slide-side{display:none}}
+.slide-side{position:relative;overflow:hidden;background:#0F172A}
+.slide{position:absolute;inset:0;opacity:0;transition:opacity 1s ease;display:flex;align-items:flex-end;padding:56px;background-size:cover;background-position:center}
+.slide.active{opacity:1}
+.slide::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(15,23,42,.25) 0%,rgba(15,23,42,.9) 100%)}
+.slide-content{position:relative;z-index:1;color:#fff}
+.slide-tag{display:inline-flex;align-items:center;gap:7px;padding:5px 14px;border-radius:999px;background:rgba(56,189,248,.16);border:1px solid rgba(56,189,248,.35);color:#38BDF8;font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px}
+.slide-title{font-size:2rem;font-weight:700;margin:0 0 10px;line-height:1.15}
+.slide-desc{font-size:.94rem;color:rgba(255,255,255,.78);max-width:40ch;line-height:1.65}
+.slide-dots{position:absolute;bottom:26px;right:56px;z-index:2;display:flex;gap:7px}
+.slide-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.35);transition:all .3s}
+.slide-dot.active{background:#38BDF8;width:22px;border-radius:4px}
+.slide-logo{position:absolute;top:36px;left:56px;z-index:2;display:flex;align-items:center;gap:10px}
+.slide-logo img{height:40px;border-radius:8px;background:#fff;padding:3px}
+.slide-logo span{font-weight:700;color:#fff;font-size:1rem}
+.form-side{display:flex;align-items:center;justify-content:center;padding:40px 24px}
+.form-card{width:100%;max-width:400px}
+.form-card h1{font-size:1.5rem;font-weight:700;margin:18px 0 6px}
+.form-card .sub{color:var(--text-3);font-size:.86rem;margin-bottom:28px}
+.role-card{padding:14px;border:2px solid var(--border);border-radius:12px;text-align:center;cursor:pointer;transition:all .2s;user-select:none}
+.role-card.active{border-color:var(--accent-blue);background:var(--bg-alt)}
+.inp-wrap{position:relative}
+.inp-wrap input{padding-left:40px}
+.inp-wrap i{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-3);font-size:.85rem}
+.mobile-logo{display:none;text-align:center;margin-bottom:24px}
+@media(max-width:860px){.mobile-logo{display:block}}
+</style>
+</head><body>
+<div class="split-wrap">
+  <div class="slide-side">
+    <div class="slide-logo"><img src="{% static 'images/logo_full.png' %}" alt="MACL"><span>MUDDO AGRO</span></div>
+    <div class="slide active" style="background-image:url('{% static 'images/hero_pesticides.jpg' %}')">
+      <div class="slide-content"><div class="slide-tag">{% icon "bug" %}Pesticides</div><h2 class="slide-title">Protection that actually holds up in the field.</h2><p class="slide-desc">Broad-spectrum insecticides trusted by farmers across all four regions of Uganda.</p></div>
+    </div>
+    <div class="slide" style="background-image:url('{% static 'images/hero_herbicides.jpg' %}')">
+      <div class="slide-content"><div class="slide-tag">{% icon "seedling" %}Herbicides</div><h2 class="slide-title">Clear the weeds, keep the crop.</h2><p class="slide-desc">Selective and non-selective control for even the most stubborn Couch and Kikuyu grass.</p></div>
+    </div>
+    <div class="slide" style="background-image:url('{% static 'images/hero_fungicides.jpg' %}')">
+      <div class="slide-content"><div class="slide-tag">{% icon "microscope" %}Fungicides</div><h2 class="slide-title">Built for Uganda's humidity.</h2><p class="slide-desc">Protective and curative fungicides that hold up against blight and mildew season after season.</p></div>
+    </div>
+    <div class="slide" style="background-image:url('{% static 'images/hero_fertilizers.jpg' %}')">
+      <div class="slide-content"><div class="slide-tag">{% icon "boxes" %}Fertilizers &amp; Equipment</div><h2 class="slide-title">Everything else the farm needs.</h2><p class="slide-desc">From basal fertilizer to a dependable knapsack sprayer — genuine, in stock, MAAIF-registered.</p></div>
+    </div>
+    <div class="slide-dots"><span class="slide-dot active"></span><span class="slide-dot"></span><span class="slide-dot"></span><span class="slide-dot"></span></div>
+  </div>
+  <div class="form-side">
+    <div class="form-card">
+      <div class="mobile-logo"><img src="{% static 'images/logo_full.png' %}" alt="MACL" style="height:56px;border-radius:10px"></div>
+      <h1>Staff Portal</h1>
+      <p class="sub">Authorised personnel only — administrators and field agents.</p>
+      {% if messages %}{% for m in messages %}
+      <div style="margin-bottom:16px;padding:12px 14px;border-radius:10px;background:{% if 'error' in m.tags %}rgba(239,68,68,.08){% else %}var(--bg-alt){% endif %};border:1px solid {% if 'error' in m.tags %}var(--accent-red){% else %}var(--accent-blue){% endif %};color:{% if 'error' in m.tags %}var(--accent-red){% else %}var(--text-1){% endif %};font-size:.88rem;display:flex;align-items:center;gap:8px">
+        {% if 'error' in m.tags %}{% icon "exclamation-circle" %}{% else %}{% icon "check-circle" %}{% endif %}{{ m }}
+      </div>{% endfor %}{% endif %}
+      <form method="POST">{% csrf_token %}
+        <p style="font-size:.8rem;font-weight:700;color:var(--text-3);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Select Role</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px">
+          <label><input type="radio" name="role" value="admin" id="r-admin" style="display:none">
+            <div class="role-card" id="rc-admin" onclick="setRole('admin')">{% icon "shield-alt" style="font-size:1.4rem;color:var(--accent-blue);display:block;margin-bottom:7px" %}<div style="font-weight:700;font-size:.9rem">Administrator</div><div style="font-size:.72rem;color:var(--text-3)">Full access</div></div></label>
+          <label><input type="radio" name="role" value="agent" id="r-agent" checked style="display:none">
+            <div class="role-card active" id="rc-agent" onclick="setRole('agent')">{% icon "user-tie" style="font-size:1.4rem;color:var(--accent-blue);display:block;margin-bottom:7px" %}<div style="font-weight:700;font-size:.9rem">Field Agent</div><div style="font-size:.72rem;color:var(--text-3)">Agent portal</div></div></label>
+        </div>
+        <div style="margin-bottom:16px"><label>Username</label><div class="inp-wrap">{% icon "user" %}<input type="text" name="username" placeholder="Enter username" required autofocus></div></div>
+        <div style="margin-bottom:22px"><label>Password</label><div class="inp-wrap">{% icon "lock" %}<input type="password" id="pw" name="password" placeholder="Enter password" required><button type="button" onclick="togglePw()" id="pwToggleBtn" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-3)"><span class="pw-icon-slot pw-icon-eye">{% icon "eye" %}</span><span class="pw-icon-slot pw-icon-eye-slash">{% icon "eye-slash" %}</span></button></div></div>
+        <button type="submit" class="btn-primary" style="width:100%;justify-content:center">{% icon "sign-in-alt" %} Sign In</button>
+      </form>
+      <div style="text-align:center;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+        <a href="{% url 'index' %}" style="font-size:.84rem;color:var(--text-3)">{% icon "arrow-left" %} Back to Website</a>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="{% static 'js/theme.js' %}"></script>
+<script>
+function setRole(r){document.getElementById('r-admin').checked=r==='admin';document.getElementById('r-agent').checked=r==='agent';document.getElementById('rc-admin').classList.toggle('active',r==='admin');document.getElementById('rc-agent').classList.toggle('active',r==='agent')}
+function togglePw(){const p=document.getElementById('pw'),btn=document.getElementById('pwToggleBtn');p.type=p.type==='password'?'text':'password';btn.classList.toggle('pw-visible',p.type==='text')}
+let slideIdx=0;const slides=document.querySelectorAll('.slide');const dots=document.querySelectorAll('.slide-dot');
+setInterval(()=>{slides[slideIdx].classList.remove('active');dots[slideIdx].classList.remove('active');slideIdx=(slideIdx+1)%slides.length;slides[slideIdx].classList.add('active');dots[slideIdx].classList.add('active')},4500);
+</script>
+</body></html>

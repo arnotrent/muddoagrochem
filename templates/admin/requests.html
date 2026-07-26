@@ -1,0 +1,31 @@
+{% extends "admin/base_admin.html" %}{% load icons %}
+{% block title %}Enquiries{% endblock %}{% block page_icon %}{% icon "envelope" %}{% endblock %}{% block page_heading %}Customer Enquiries{% endblock %}
+{% block content %}
+<div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;align-items:center">
+  <button onclick="filterReqs('')" class="btn-admin btn-primary-admin" id="rf-all">All ({{ requests|length }})</button>
+  <button onclick="filterReqs('new')" class="btn-admin btn-secondary-admin" id="rf-new">New</button>
+  <button onclick="filterReqs('pending')" class="btn-admin btn-secondary-admin" id="rf-pending">Pending</button>
+  <button onclick="filterReqs('resolved')" class="btn-admin btn-secondary-admin" id="rf-resolved">Resolved</button>
+  <input type="text" id="rs" placeholder="Search…" oninput="document.querySelectorAll('#rt tbody tr[data-search]').forEach(r=>r.style.display=r.dataset.search.includes(this.value.toLowerCase())?'':'')" style="margin-left:auto;width:220px">
+</div>
+<div class="admin-card"><div class="tbl-wrap">
+  <table class="data-table" id="rt"><thead><tr><th>Ref #</th><th>Customer</th><th>Subject</th><th>Message</th><th>Status</th><th>Date</th><th>Update</th></tr></thead>
+  <tbody>{% for r in requests %}<tr data-status="{{ r.status }}" data-search="{{ r.name|lower }} {{ r.subject|lower }} {{ r.email|lower }}">
+    <td style="font-family:monospace;font-size:.78rem;color:var(--accent-blue);font-weight:700;white-space:nowrap">{{ r.ref_number }}</td>
+    <td><strong>{{ r.name }}</strong><br><small style="color:var(--text-3);font-size:.76rem">{{ r.email }}</small>{% if r.phone %}<br><small style="color:var(--text-3);font-size:.74rem">{{ r.phone }}</small>{% endif %}</td>
+    <td style="font-size:.85rem;max-width:160px">{{ r.subject }}</td>
+    <td style="font-size:.82rem;color:var(--text-3);max-width:200px">{{ r.message|truncatechars:80 }}</td>
+    <td><span class="badge badge-{{ r.status }}">{{ r.status|title }}</span></td>
+    <td style="font-size:.78rem;color:var(--text-3);white-space:nowrap">{{ r.created_at|date:"d M Y" }}</td>
+    <td><form method="POST" action="{% url 'admin_update_request' r.id %}" style="display:flex;gap:5px;align-items:center">{% csrf_token %}
+      <select name="status" class="admin-input small" style="width:100px"><option value="new" {% if r.status == 'new' %}selected{% endif %}>New</option><option value="pending" {% if r.status == 'pending' %}selected{% endif %}>Pending</option><option value="resolved" {% if r.status == 'resolved' %}selected{% endif %}>Resolved</option></select>
+      <button type="submit" class="btn-admin btn-success-admin" style="padding:5px 10px">{% icon "check" %}</button>
+      <a href="mailto:{{ r.email }}?subject=Re: {{ r.subject|urlencode }}" class="btn-admin btn-secondary-admin" style="padding:5px 10px">{% icon "reply" %}</a>
+    </form></td>
+  </tr>{% empty %}<tr><td colspan="7" style="text-align:center;color:var(--text-3);padding:32px">No enquiries yet.</td></tr>{% endfor %}</tbody>
+  </table>
+</div></div>
+{% endblock %}
+{% block extra_js %}<script>
+function filterReqs(s){document.querySelectorAll('[id^="rf-"]').forEach(b=>b.className='btn-admin btn-secondary-admin');document.getElementById('rf-'+(s||'all')).className='btn-admin btn-primary-admin';document.querySelectorAll('#rt tbody tr[data-status]').forEach(r=>r.style.display=(!s||r.dataset.status===s)?'':'none')}
+</script>{% endblock %}

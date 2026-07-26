@@ -1,0 +1,9 @@
+@media print {
+  .navbar, .footer, .wa-fab, #backToTop, .mobile-menu, .flash-wrap, .quick-view-btn, button:not([type="submit"]) { display:none !important; }
+  body { background:#fff !important; color:#000 !important; }
+  a[href]::after { content:' (' attr(href) ')'; font-size:8pt; color:#555; }
+  .container { max-width:100% !important; padding:0 !important; }
+  @page { size:A4 portrait; margin:18mm 15mm; }
+}
+.print-btn { display:inline-flex; align-items:center; gap:7px; padding:8px 16px; border-radius:var(--r-btn); border:1.5px solid var(--border); background:var(--bg-card); color:var(--text-2); font-size:.82rem; font-weight:700; cursor:pointer; }
+.print-btn:hover { border-color:var(--accent-blue); color:var(--accent-blue); }

@@ -1,0 +1,8 @@
+/* Typography — Inter throughout. Headings 700, subheadings 600, body 400. */
+body { font-size:1rem; line-height:1.75; }
+h1 { font-weight:700; }
+h2 { font-weight:700; }
+h3, h4 { font-weight:600; }
+small { font-size:.82rem; color:var(--text-3); }
+strong, b { font-weight:700; color:var(--text-1); }
+.subheading { font-weight:600; color:var(--text-2); }

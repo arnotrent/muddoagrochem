@@ -1,0 +1,204 @@
+{% load static icons %}
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0F172A">
+<title>{% block title %}Muddo Agro Chemicals LTD{% endblock %}</title>
+<meta name="description" content="Uganda's trusted MAAIF-registered distributor of pesticides, herbicides, fungicides and fertilizers. Kampala. +256 772 507582.">
+<link rel="icon" type="image/png" href="{% static 'images/logo_full.png' %}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/theme_vars.css' %}">
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+<link rel="stylesheet" href="{% static 'css/typography.css' %}">
+<link rel="stylesheet" href="{% static 'css/responsive.css' %}">
+<link rel="stylesheet" href="{% static 'css/animations.css' %}">
+{% block extra_head %}{% endblock %}
+<script>(function(){var t=localStorage.getItem('muddo-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to content</a>
+<div class="scroll-progress"></div>
+
+<!-- NAVBAR -->
+<nav class="navbar" id="navbar">
+  <div class="nav-inner">
+    <a href="{% url 'index' %}" class="nav-logo">
+      <img src="{% static 'images/logo_full.png' %}" alt="MACL" class="logo-img">
+      <div class="logo-text">
+        <span class="logo-main">MUDDO AGRO</span>
+        <span class="logo-sub">Chemicals LTD · MAAIF Registered</span>
+      </div>
+    </a>
+
+    <ul class="nav-links">
+      <li><a href="{% url 'index' %}" class="nav-link {% block nav_home %}{% endblock %}">Home</a></li>
+      <li class="nav-dropdown">
+        <a href="#" class="nav-link {% block nav_products %}{% endblock %}">Products {% icon "chevron-down" style="font-size:.6rem" %}</a>
+        <ul class="dropdown-menu">
+          <li><a href="{% url 'pesticides' %}" class="dropdown-item">{% icon "bug" %}Pesticides</a></li>
+          <li><a href="{% url 'herbicides' %}" class="dropdown-item">{% icon "seedling" %}Herbicides</a></li>
+          <li><a href="{% url 'fungicides' %}" class="dropdown-item">{% icon "microscope" %}Fungicides</a></li>
+          <li><a href="{% url 'other_products' %}" class="dropdown-item">{% icon "boxes" %}Fertilizers & Equipment</a></li>
+          <li style="border-top:1px solid var(--border);margin-top:6px;padding-top:6px"><a href="{% url 'compare' %}" class="dropdown-item">{% icon "balance-scale" %}Compare Products</a></li>
+        </ul>
+      </li>
+      <li><a href="{% url 'distributors' %}" class="nav-link {% block nav_stores %}{% endblock %}">Find a Store</a></li>
+      <li><a href="{% url 'about' %}" class="nav-link {% block nav_about %}{% endblock %}">About</a></li>
+      <li><a href="{% url 'contact' %}" class="nav-link {% block nav_contact %}{% endblock %}">Contact</a></li>
+      {% if request.user.is_authenticated %}
+        {% if request.user.is_staff %}<li><a href="{% url 'admin_dashboard' %}" class="nav-link" style="color:var(--accent-blue)">{% icon "cog" %}Admin</a></li>
+        {% else %}<li><a href="{% url 'agent_dashboard' %}" class="nav-link" style="color:var(--accent-blue)">{% icon "user" %}Portal</a></li>{% endif %}
+      {% endif %}
+    </ul>
+
+    <div style="display:flex;align-items:center;gap:8px">
+      <a href="{% url 'contact' %}" class="nav-cta" style="display:none">{% icon "envelope" %}Enquire</a>
+      <button class="theme-btn theme-toggle-nav" title="Toggle dark mode" aria-label="Toggle dark/light mode"><span class="theme-icon-slot theme-icon-moon">{% icon "moon" %}</span><span class="theme-icon-slot theme-icon-sun">{% icon "sun" %}</span></button>
+      <button class="hamburger" id="hamburger" aria-label="Toggle navigation menu" aria-expanded="false"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</nav>
+
+<!-- MOBILE DRAWER -->
+<div class="mobile-menu" id="mobileMenu" role="dialog" aria-label="Navigation menu">
+  <div class="mm-search"><form method="GET" action="{% url 'search' %}"><input type="text" name="q" placeholder="Search products…"><button type="submit">{% icon "search" %}</button></form></div>
+  <div class="mm-ctas">
+    <a href="{% url 'contact' %}" class="mm-cta-btn btn-primary">{% icon "envelope" %}Enquire</a>
+    <a href="https://wa.me/{{ wa_number }}?text=Hello%20Muddo%20Agro" target="_blank" class="mm-cta-btn" style="background:var(--accent-green);color:#0F172A">{% icon "whatsapp" %}WhatsApp</a>
+  </div>
+  <div class="mm-section">Products</div>
+  <a href="{% url 'pesticides' %}" class="mm-link" onclick="closeMenu()">{% icon "bug" %}Pesticides</a>
+  <a href="{% url 'herbicides' %}" class="mm-link" onclick="closeMenu()">{% icon "seedling" %}Herbicides</a>
+  <a href="{% url 'fungicides' %}" class="mm-link" onclick="closeMenu()">{% icon "microscope" %}Fungicides</a>
+  <a href="{% url 'other_products' %}" class="mm-link" onclick="closeMenu()">{% icon "boxes" %}Fertilizers & Equipment</a>
+  <a href="{% url 'compare' %}" class="mm-link" onclick="closeMenu()">{% icon "balance-scale" %}Compare Products</a>
+  <div class="mm-section">Navigate</div>
+  <a href="{% url 'distributors' %}" class="mm-link" onclick="closeMenu()">{% icon "store" %}Find a Store</a>
+  <a href="{% url 'about' %}" class="mm-link" onclick="closeMenu()">{% icon "info-circle" %}About Us & FAQ</a>
+  <a href="{% url 'contact' %}" class="mm-link" onclick="closeMenu()">{% icon "envelope" %}Contact Us</a>
+  <a href="{% url 'track' %}" class="mm-link" onclick="closeMenu()">{% icon "search" %}Track Enquiry</a>
+  <div class="mm-section">Contact Details</div>
+  <a href="tel:+256772507582" class="mm-link">{% icon "phone" %}+256 772 507582</a>
+  <a href="mailto:kulanju_w@yahoo.com" class="mm-link">{% icon "envelope" %}kulanju_w@yahoo.com</a>
+  <div class="mm-section">Staff</div>
+  {% if request.user.is_authenticated %}
+    {% if request.user.is_staff %}<a href="{% url 'admin_dashboard' %}" class="mm-link" onclick="closeMenu()">{% icon "cog" %}Admin Panel</a>
+    {% else %}<a href="{% url 'agent_dashboard' %}" class="mm-link" onclick="closeMenu()">{% icon "user" %}Agent Portal</a>{% endif %}
+    <a href="{% url 'logout' %}" class="mm-link" style="color:var(--accent-red)" onclick="closeMenu()">{% icon "sign-out-alt" style="color:var(--accent-red)" %}Logout</a>
+  {% else %}
+    <a href="{% url 'login' %}" class="mm-link" onclick="closeMenu()">{% icon "lock" %}Staff Login</a>
+  {% endif %}
+</div>
+
+<!-- FLASH MESSAGES -->
+{% if messages %}
+<div class="flash-wrap">
+  {% for message in messages %}
+  <div class="flash-msg {% if 'error' in message.tags %}error{% else %}success{% endif %}">
+    {% if 'error' in message.tags %}{% icon "exclamation-circle" %}{% else %}{% icon "check-circle" %}{% endif %}
+    <span style="flex:1">{{ message|safe }}</span>
+    <button onclick="this.closest('.flash-msg').remove()" style="background:none;border:none;cursor:pointer;color:var(--text-3)">{% icon "times" %}</button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<main id="main-content">{% block content %}{% endblock %}</main>
+
+<!-- FOOTER — contact details live here too; Staff Login is footer-ONLY (never in the header) -->
+<footer class="footer">
+  <div class="container">
+    <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1.3fr;gap:40px;margin-bottom:40px">
+      <div>
+        <img src="{% static 'images/logo_full.png' %}" alt="MACL" style="height:48px;margin-bottom:14px;background:#fff;border-radius:8px;padding:4px">
+        <p style="font-size:.88rem;line-height:1.75;color:rgba(255,255,255,.65);max-width:30ch;margin-bottom:14px">Uganda's trusted MAAIF-registered distributor of high-quality agrochemicals since 2020.</p>
+        <div class="footer-social">
+          <a href="https://facebook.com/p/MUDDO-AGRO-Chemicals-LTD-100063836929481/" target="_blank" aria-label="Facebook">{% icon "facebook-f" %}</a>
+          <a href="https://wa.me/{{ wa_number }}" target="_blank" aria-label="WhatsApp">{% icon "whatsapp" %}</a>
+          <a href="mailto:kulanju_w@yahoo.com" aria-label="Email">{% icon "envelope" %}</a>
+        </div>
+      </div>
+      <div>
+        <h4>Products</h4>
+        <ul>
+          <li><a href="{% url 'pesticides' %}">{% icon "bug" %}Pesticides</a></li>
+          <li><a href="{% url 'herbicides' %}">{% icon "seedling" %}Herbicides</a></li>
+          <li><a href="{% url 'fungicides' %}">{% icon "microscope" %}Fungicides</a></li>
+          <li><a href="{% url 'other_products' %}">{% icon "boxes" %}Fertilizers & Equipment</a></li>
+          <li><a href="{% url 'compare' %}">{% icon "balance-scale" %}Compare</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Company</h4>
+        <ul>
+          <li><a href="{% url 'about' %}">About Us & FAQ</a></li>
+          <li><a href="{% url 'distributors' %}">Find a Store</a></li>
+          <li><a href="{% url 'contact' %}">Contact Us</a></li>
+          <li><a href="{% url 'track' %}">Track Enquiry</a></li>
+          <li><a href="{% url 'search' %}">Search Products</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Contact & Staff</h4>
+        <ul class="footer-contact">
+          <li>{% icon "map-marker-alt" %}Container Village Nakivubo, Equity Bank Basement V013, Kampala</li>
+          <li>{% icon "phone" %}<a href="tel:+256772507582">+256 772 507582</a></li>
+          <li>{% icon "envelope" %}<a href="mailto:kulanju_w@yahoo.com">kulanju_w@yahoo.com</a></li>
+        </ul>
+        <ul style="margin-top:8px">
+          {% if request.user.is_authenticated %}
+            {% if request.user.is_staff %}<li><a href="{% url 'admin_dashboard' %}">{% icon "cog" %}Admin Panel</a></li>
+            {% else %}<li><a href="{% url 'agent_dashboard' %}">{% icon "user" %}Agent Portal</a></li>{% endif %}
+            <li><a href="{% url 'logout' %}">{% icon "sign-out-alt" %}Logout</a></li>
+          {% else %}
+            <li><a href="{% url 'login' %}">{% icon "lock" %}Staff Login</a></li>
+          {% endif %}
+        </ul>
+        <h4 style="margin-top:18px">Stay Updated</h4>
+        <form class="nl-form" id="nlForm"><input type="email" name="email" placeholder="your@email.com" required><button type="submit">{% icon "paper-plane" %}</button></form>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© {% now "Y" %} Muddo Agro Chemicals LTD. MAAIF-Registered Distributor.</p>
+      <a href="{% url 'sitemap' %}">Sitemap</a>
+    </div>
+  </div>
+</footer>
+
+<a href="https://wa.me/{{ wa_number }}?text=Hello%20Muddo%20Agro%2C%20I%20need%20help" class="wa-fab" target="_blank" aria-label="Chat on WhatsApp">{% icon "whatsapp" %}</a>
+<button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Back to top">{% icon "arrow-up" %}</button>
+
+<!-- QUICK VIEW MODAL -->
+<div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box" style="max-width:560px;width:100%;position:relative">
+    <button class="modal-close" onclick="closeModal()">{% icon "times" %}</button>
+    <div class="modal-img-side" style="height:220px;background:var(--bg-alt)"><img id="modalImg" src="" alt="Product image"></div>
+    <div class="modal-body">
+      <h2 id="modalName" style="font-size:1.25rem;font-weight:700;color:var(--text-1);margin-bottom:10px"></h2>
+      <p id="modalDesc" style="font-size:.9rem;line-height:1.7;color:var(--text-2);margin-bottom:14px"></p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:16px">
+        <div style="background:var(--bg-alt);border-radius:8px;padding:9px 11px"><div style="font-size:.64rem;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-bottom:2px">Active Ingr.</div><div id="modalIngr" style="font-size:.83rem;font-weight:600;color:var(--text-1)"></div></div>
+        <div style="background:var(--bg-alt);border-radius:8px;padding:9px 11px"><div style="font-size:.64rem;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-bottom:2px">Formulation</div><div id="modalForm" style="font-size:.83rem;font-weight:600;color:var(--text-1)"></div></div>
+        <div style="background:var(--bg-alt);border-radius:8px;padding:9px 11px;grid-column:1/-1"><div style="font-size:.64rem;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-bottom:2px">Crops</div><div id="modalCrops" style="font-size:.83rem;font-weight:600;color:var(--text-1)"></div></div>
+        <div style="background:var(--bg-alt);border-radius:8px;padding:9px 11px"><div style="font-size:.64rem;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-bottom:2px">Dosage</div><div id="modalDose" style="font-size:.83rem;font-weight:600;color:var(--text-1)"></div></div>
+        <div style="background:var(--bg-alt);border-radius:8px;padding:9px 11px"><div style="font-size:.64rem;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-bottom:2px">Pack Sizes</div><div id="modalPack" style="font-size:.83rem;font-weight:600;color:var(--text-1)"></div></div>
+      </div>
+      <div style="display:flex;gap:9px">
+        <a id="modalViewBtn" href="#" class="btn-outline" style="flex:1;justify-content:center">{% icon "info-circle" %}Details</a>
+        <a id="modalEnqBtn" href="#" class="btn-primary" style="flex:1;justify-content:center">{% icon "envelope" %}Enquire</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="{% static 'js/theme.js' %}"></script>
+<script src="{% static 'js/main.js' %}"></script>
+<script src="{% static 'js/modal.js' %}"></script>
+<script src="{% static 'js/enhancements.js' %}"></script>
+<script src="{% static 'js/confirm-modal.js' %}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

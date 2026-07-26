@@ -1,0 +1,41 @@
+{% extends "base.html" %}{% load static icons %}
+{% block title %}{% if q %}Search: {{ q }}{% else %}Search{% endif %} — Muddo Agro{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/products.css' %}">{% endblock %}
+{% block content %}
+<section class="page-hero" style="background-color:#0F172A"><div class="container"><h1 style="margin:12px 0">Search Results</h1></div></section>
+<section class="section"><div class="container">
+  <div style="max-width:600px;margin:0 auto 40px">
+    <form action="{% url 'search' %}" method="GET" style="display:flex;gap:10px">
+      <input type="text" name="q" value="{{ q }}" placeholder="Search products, ingredients, crops…" autofocus>
+      <button type="submit" class="btn-primary" style="white-space:nowrap">{% icon "search" %}Search</button>
+    </form>
+  </div>
+  {% if q %}
+  <p style="margin-bottom:28px;color:var(--text-3)">Found <strong style="color:var(--text-1)">{{ results.products|length }}</strong> product(s) and <strong style="color:var(--text-1)">{{ results.distributors|length }}</strong> distributor(s) for <strong style="color:var(--accent-blue)">"{{ q }}"</strong></p>
+  {% if results.products %}
+  <h2 style="font-size:1.35rem;margin-bottom:20px">Products ({{ results.products|length }})</h2>
+  <div class="products-grid" style="margin-bottom:48px">
+    {% for p in results.products %}
+    <div class="product-card" data-id="{{ p.id }}" data-name="{{ p.name }}" data-cat="{{ p.category }}" data-desc="{{ p.description|truncatechars:200 }}" data-img="{{ p.display_image }}" data-ingr="{{ p.active_ingredient }}" data-form="{{ p.formulation }}" data-crops="{{ p.crops }}" data-dose="{{ p.dosage }}" data-pack="{{ p.packing }}" data-stock="{{ p.stock_qty }}">
+      <div class="product-card-img"><img src="{{ p.display_image }}" alt="{{ p.name }}" loading="lazy" onerror="this.src='{% static 'images/products_all.jpg' %}'"><button class="quick-view-btn">{% icon "eye" %}Quick View</button></div>
+      <div class="product-card-body"><span class="product-tag tag-{{ p.category }}">{{ p.get_category_display }}</span><h3>{{ p.name }}</h3><p>{{ p.description|truncatewords:18 }}</p><div class="product-card-footer"><a href="{{ p.get_absolute_url }}" class="btn-outline">{% icon "info-circle" %}Details</a><a href="{% url 'contact' %}" class="btn-primary" style="flex:1;justify-content:center">{% icon "envelope" %}Enquire</a></div></div>
+    </div>{% endfor %}
+  </div>{% endif %}
+  {% if results.distributors %}
+  <h2 style="font-size:1.35rem;margin-bottom:20px">Outlets ({{ results.distributors|length }})</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-bottom:40px">
+    {% for d in results.distributors %}
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:18px">
+      <div style="font-weight:700;font-size:.96rem;margin-bottom:4px">{{ d.name }}</div>
+      <div style="font-size:.74rem;color:var(--accent-blue);font-weight:700;text-transform:uppercase;margin-bottom:10px">{{ d.region }} · {{ d.district }}</div>
+      {% if d.phone %}<p style="font-size:.84rem;margin:0">{% icon "phone" style="color:var(--accent-blue);margin-right:5px" %}<a href="tel:{{ d.phone }}" style="color:var(--accent-blue)">{{ d.phone }}</a></p>{% endif %}
+    </div>{% endfor %}
+  </div>{% endif %}
+  {% if not results.products and not results.distributors %}
+  <div style="text-align:center;padding:60px 20px">{% icon "search" style="font-size:3rem;color:var(--border);display:block;margin-bottom:16px" %}<h3 style="margin-bottom:8px">No results for "{{ q }}"</h3><p style="color:var(--text-3);margin:0 0 28px">Try different keywords — product name, active ingredient, or target crop.</p><div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap"><a href="{% url 'pesticides' %}" class="btn-outline">{% icon "bug" %}Pesticides</a><a href="{% url 'herbicides' %}" class="btn-outline">{% icon "seedling" %}Herbicides</a><a href="{% url 'contact' %}" class="btn-primary">{% icon "envelope" %}Ask Us</a></div></div>
+  {% endif %}
+  {% else %}
+  <div style="text-align:center;padding:40px 0"><p style="color:var(--text-3);margin-bottom:28px">Enter a product name, active ingredient or crop name to search our full catalogue.</p><div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap"><a href="{% url 'pesticides' %}" class="btn-outline">{% icon "bug" %}Pesticides</a><a href="{% url 'herbicides' %}" class="btn-outline">{% icon "seedling" %}Herbicides</a><a href="{% url 'fungicides' %}" class="btn-outline">{% icon "microscope" %}Fungicides</a><a href="{% url 'other_products' %}" class="btn-outline">{% icon "boxes" %}Other</a></div></div>
+  {% endif %}
+</div></section>
+{% endblock %}

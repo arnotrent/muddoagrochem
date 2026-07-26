@@ -1,0 +1,81 @@
+{% load static icons %}
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Agent Portal — Muddo Agro</title>
+<link rel="icon" type="image/png" href="{% static 'images/logo_full.png' %}">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/theme_vars.css' %}">
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+<link rel="stylesheet" href="{% static 'css/admin.css' %}">
+<script>(function(){var t=localStorage.getItem('muddo-theme')||'light';document.documentElement.setAttribute('data-theme',t)})();</script>
+</head>
+<body data-user-id="{{ agent.id }}" data-user-role="agent" data-user-initial="{{ agent.name|first|upper }}">
+<div style="display:flex;min-height:100vh;background:var(--bg)">
+  <aside class="admin-sidebar">
+    <div class="sidebar-brand">
+      <img src="{% static 'images/logo_full.png' %}" alt="MACL">
+      <div><span class="sidebar-brand-name">Agent Portal</span><span class="sidebar-brand-sub">{{ agent.name }}</span></div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-section">My Portal</div>
+      <a href="{% url 'agent_dashboard' %}" class="sidebar-link active">{% icon "tachometer-alt" %}Dashboard</a>
+      <a href="{% url 'agent_chat' %}" class="sidebar-link">{% icon "comments" %}Messages{% if unread > 0 %}<span class="sidebar-badge" style="background:var(--accent-red);color:#fff">{{ unread }}</span>{% endif %}</a>
+      <div class="sidebar-section">Quick Links</div>
+      <a href="{% url 'pesticides' %}" target="_blank" class="sidebar-link">{% icon "globe" %}View Website</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="{% url 'logout' %}" class="sidebar-link" style="color:var(--accent-red)">{% icon "sign-out-alt" %}Logout</a>
+    </div>
+  </aside>
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+    <div class="admin-topbar">
+      <div class="admin-topbar-title">Welcome back, <span style="color:var(--accent-blue)">{{ agent.name }}</span> 👋</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:.8rem;color:var(--text-3)">{{ agent.region|default:"" }}{% if agent.district %} · {{ agent.district }}{% endif %}</span>
+        <div style="width:34px;height:34px;border-radius:50%;background:var(--accent-blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.88rem">{{ agent.name|first|upper }}</div>
+        <button class="theme-btn theme-toggle-nav"><span class="theme-icon-slot theme-icon-moon">{% icon "moon" %}</span><span class="theme-icon-slot theme-icon-sun">{% icon "sun" %}</span></button>
+      </div>
+    </div>
+    <div class="admin-content">
+      {% if messages %}{% for m in messages %}<div class="admin-flash {% if 'error' in m.tags %}flash-error{% else %}flash-success{% endif %}">{% if 'error' in m.tags %}{% icon "exclamation-circle" %}{% else %}{% icon "check-circle" %}{% endif %}{{ m }}</div>{% endfor %}{% endif %}
+      <div class="kpi-grid">
+        {% for icon,key,val,lbl in kpis %}
+        <div class="kpi-card"><div class="kpi-icon">{% icon icon %}</div><div class="kpi-value">{{ val }}</div><div class="kpi-label">{{ lbl }}</div></div>{% endfor %}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div class="admin-card">
+          <div class="admin-card-header"><div class="admin-card-title">{% icon "plus-circle" %}New Supply Request</div></div>
+          <div class="admin-card-body">
+            <form method="POST" action="{% url 'agent_supply_request' %}">{% csrf_token %}
+              <div class="admin-form-group"><label>Product Name *</label><input name="product_name" class="admin-input" placeholder="e.g. MUDDOSATE 480SL — 50 × 1L" required></div>
+              <div class="admin-form-group"><label>Quantity Needed *</label><input name="quantity" class="admin-input" placeholder="e.g. 50 bottles, 10 bags" required></div>
+              <div class="admin-form-group"><label>Notes (optional)</label><textarea name="notes" class="admin-input" rows="2" placeholder="Delivery location, urgency, crop details…"></textarea></div>
+              <button type="submit" class="btn-admin btn-primary-admin" style="width:100%;justify-content:center">{% icon "paper-plane" %}Submit Request</button>
+            </form>
+          </div>
+        </div>
+        <div class="admin-card">
+          <div class="admin-card-header"><div class="admin-card-title">{% icon "list" %}My Recent Requests</div></div>
+          <div class="tbl-wrap" style="border:none;border-radius:0">
+            <table class="data-table"><thead><tr><th>Product</th><th>Qty</th><th>Status</th><th>Date</th></tr></thead>
+            <tbody>{% for r in my_requests %}<tr><td style="font-size:.86rem"><strong>{{ r.product_name }}</strong>{% if r.admin_response %}<br><small style="color:var(--text-3);font-size:.74rem">{{ r.admin_response|truncatechars:40 }}</small>{% endif %}</td><td style="font-size:.82rem;color:var(--text-3)">{{ r.quantity }}</td><td><span class="badge badge-{{ r.status }}">{{ r.status|title }}</span></td><td style="font-size:.76rem;color:var(--text-3);white-space:nowrap">{{ r.created_at|date:"d M" }}</td></tr>{% empty %}<tr><td colspan="4" style="text-align:center;color:var(--text-3);padding:24px">No requests yet.</td></tr>{% endfor %}</tbody>
+            </table>
+          </div>
+          <div style="padding:14px 18px;border-top:1px solid var(--border)">
+            <a href="{% url 'agent_chat' %}" class="btn-admin btn-primary-admin" style="width:100%;justify-content:center">{% icon "comments" %}Chat with Admin{% if unread > 0 %}<span style="background:#fff;color:var(--accent-blue);padding:1px 7px;border-radius:100px;font-size:.66rem;font-weight:700;margin-left:6px">{{ unread }}</span>{% endif %}</a>
+          </div>
+        </div>
+      </div>
+      {% if last_msg %}
+      <div style="margin-top:20px;padding:16px 20px;background:var(--bg-card);border:1px solid var(--accent-blue);border-radius:14px;display:flex;align-items:center;gap:16px">
+        <div style="width:40px;height:40px;border-radius:50%;background:var(--bg-deep);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:.88rem">A</div>
+        <div style="flex:1;min-width:0"><div style="font-size:.72rem;font-weight:700;color:var(--text-3);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em">Admin — {{ last_msg.created_at|date:"d M Y H:i" }}</div><div style="font-size:.92rem">{{ last_msg.content|truncatechars:120 }}</div></div>
+        <a href="{% url 'agent_chat' %}" class="btn-admin btn-primary-admin" style="white-space:nowrap;flex-shrink:0">{% icon "reply" %}Reply</a>
+      </div>{% endif %}
+    </div>
+  </div>
+</div>
+<script src="{% static 'js/theme.js' %}"></script>
+</body></html>

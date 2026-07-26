@@ -1,0 +1,32 @@
+[Unit]
+Description=Muddo Agro Chemicals LTD — Django Application
+After=network.target
+
+[Service]
+Type=notify
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/muddo_agro
+EnvironmentFile=/var/www/muddo_agro/.env
+ExecStart=/var/www/muddo_agro/venv/bin/gunicorn \
+    muddo_project.wsgi:application \
+    --bind 127.0.0.1:8000 \
+    --workers 4 \
+    --worker-class sync \
+    --timeout 120 \
+    --keepalive 5 \
+    --max-requests 500 \
+    --max-requests-jitter 50 \
+    --preload \
+    --access-logfile /var/log/muddo_agro/access.log \
+    --error-logfile  /var/log/muddo_agro/error.log \
+    --log-level info
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=5
+PrivateTmp=true
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

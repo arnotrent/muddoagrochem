@@ -1,0 +1,37 @@
+{% extends "admin/base_admin.html" %}
+{% load static muddo_filters icons %}
+{% block title %}Messages{% endblock %}{% block page_icon %}{% icon "comments" %}{% endblock %}
+{% block page_heading %}Agent Messages{% endblock %}
+{% block extra_head %}
+{% csrf_token %}{# ensures the csrftoken cookie is set on this page — chat.js reads it #}
+<style>
+.status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px}
+.status-dot.online{background:var(--accent-green)}
+.status-dot.offline{background:var(--text-4)}
+</style>
+{% endblock %}
+{% block content %}
+<div class="chat-layout">
+  <div class="chat-sidebar-panel">
+    <div class="chat-online-summary"><span class="dot-pulse"></span><span id="activeAgentsCount">0</span> agent(s) active now</div>
+    <div style="padding:12px 16px 8px;font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted)">Field Agents ({{ agents|length }})</div>
+    {% for a in agents %}
+    <div class="chat-contact" data-id="{{ a.id }}" data-role="agent" data-name="{{ a.name }}" data-status="{% if a.is_online %}online{% else %}offline{% endif %}">
+      <div class="chat-avatar">{{ a.name|first|upper }}{% if a.is_online %}<span class="online-dot"></span>{% else %}<span class="offline-dot"></span>{% endif %}</div>
+      <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:.88rem;color:var(--text-primary)">{{ a.name }}</div><div style="font-size:.72rem;color:var(--text-muted)">{{ a.region|default:"—" }} · <span class="presence-label">{% if a.is_online %}online{% else %}offline{% endif %}</span></div></div>
+      {% with sid=a.id|stringformat:"d" %}{% if unread_map|get_item:sid %}<span class="chat-unread-badge">{{ unread_map|get_item:sid }}</span>{% endif %}{% endwith %}
+    </div>{% empty %}
+    <div style="padding:28px;text-align:center;color:var(--text-muted);font-size:.86rem">{% icon "users" style="font-size:2rem;display:block;margin-bottom:10px;opacity:.4" %}No agents yet.<br><a href="{% url 'admin_agents' %}" style="color:var(--accent-blue)">Add agents →</a></div>
+    {% endfor %}
+  </div>
+  <div class="chat-area-panel">
+    <div id="chatEmptyState" class="chat-empty">{% icon "comments" style="font-size:3.5rem;margin-bottom:16px;color:var(--border-color);opacity:.5" %}<h3 style="font-size:1rem;font-weight:700;color:var(--text-secondary);margin-bottom:8px">Select an agent to message</h3><p style="font-size:.86rem">Choose a field agent from the left panel.</p></div>
+    <div id="chatMainArea" style="display:none;flex-direction:column;height:100%">
+      <div class="chat-top-bar"><div class="chat-avatar" id="chatHeaderAvatar">?</div><div><div id="chatHeaderName" style="font-weight:800;font-size:.96rem;color:var(--text-primary)">Agent</div><div id="chatHeaderStatus" style="font-size:.74rem;color:var(--text-muted)">—</div></div></div>
+      <div class="chat-msgs-wrap" id="chatMessages"></div>
+      <div class="chat-input-row"><textarea id="chatInput" placeholder="Type a message…"></textarea><button id="chatSendBtn" class="btn-admin btn-primary-admin">{% icon "paper-plane" %}</button></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}<script src="{% static 'js/chat.js' %}"></script>{% endblock %}

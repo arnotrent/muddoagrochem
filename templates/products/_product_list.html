@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load static muddo_filters icons %}
+{% block nav_products %}active{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/products.css' %}">{% endblock %}
+{% block title %}{{ page_title }} — Muddo Agro Chemicals LTD{% endblock %}
+{% block content %}
+<section class="page-hero" style="background-image:url('{{ hero_image }}')">
+  <div class="container">
+    <div class="breadcrumb"><a href="{% url 'index' %}">Home</a> / <span class="current">{{ page_title }}</span></div>
+    <div class="page-hero-tag">{% icon hero_icon %}{{ page_tag }}</div>
+    <h1 style="margin:12px 0">{{ page_title }}</h1>
+    <p style="max-width:55ch;margin-bottom:24px">{{ page_desc }}</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a href="{% url 'contact' %}?subject=Product+Enquiry" class="btn-primary">{% icon "envelope" %}Enquire About Any Product</a>
+      <a href="{% url 'compare' %}" class="btn-secondary" style="border-color:rgba(255,255,255,.4);color:#fff">{% icon "balance-scale" %}Compare Products</a>
+    </div>
+  </div>
+</section>
+<section class="section"><div class="container">
+  <div class="cat-tabs">
+    {% for tab_title,tab_url,tab_icon in cat_tabs %}
+    <a href="{% url tab_url %}" class="cat-tab {% if tab_title == page_title %}active{% endif %}">{% icon tab_icon %}{{ tab_title }}</a>
+    {% endfor %}
+  </div>
+  <div class="filter-bar">
+    <div class="filter-search">{% icon "search" %}<input type="text" id="prodFilter" placeholder="Search by name, active ingredient or crop…" oninput="filterCards(this.value)"></div>
+    <div class="filter-count" id="prodCount">{{ products|length }} product{% if products|length != 1 %}s{% endif %}</div>
+  </div>
+  {% if products %}
+  <div class="products-grid" id="productsGrid">
+    {% for p in products %}
+    <div class="product-card" data-reveal data-reveal-delay="{{ forloop.counter0|mul:50 }}" data-id="{{ p.id }}" data-name="{{ p.name }}" data-cat="{{ p.category }}" data-desc="{{ p.description|truncatechars:220 }}" data-img="{{ p.display_image }}" data-ingr="{{ p.active_ingredient }}" data-form="{{ p.formulation }}" data-crops="{{ p.crops }}" data-dose="{{ p.dosage }}" data-pack="{{ p.packing }}" data-stock="{{ p.stock_qty }}" data-search="{{ p.name|lower }} {{ p.active_ingredient|lower }} {{ p.crops|lower }} {{ p.formulation|lower }}">
+      <div class="product-card-img">
+        <img src="{{ p.display_image }}" alt="{{ p.name }}" loading="lazy" onerror="this.src='{% static 'images/products_all.jpg' %}'">
+        {% if p.stock_qty == 0 %}<span class="stock-badge stock-out">{% icon "times-circle" %}Out of Stock</span>{% elif p.stock_qty <= 10 %}<span class="stock-badge stock-low">{% icon "exclamation-circle" %}Low Stock</span>{% else %}<span class="stock-badge stock-in">{% icon "check-circle" %}In Stock</span>{% endif %}
+        <button class="quick-view-btn">{% icon "eye" %}Quick View</button>
+      </div>
+      <div class="product-card-body">
+        <span class="product-tag tag-{{ p.category }}">{% if p.category == 'pesticide' %}{% icon "bug" %}{% elif p.category == 'herbicide' %}{% icon "seedling" %}{% elif p.category == 'fungicide' %}{% icon "microscope" %}{% else %}{% icon "boxes" %}{% endif %}{{ p.get_category_display }}</span>
+        <h3>{{ p.name }}</h3>
+        <p>{{ p.description|truncatewords:20 }}</p>
+        <div class="spec-pills">
+          {% if p.active_ingredient %}<div class="spec-pill"><strong>A.I.</strong>{{ p.active_ingredient|truncatewords:6 }}</div>{% endif %}
+          {% if p.crops %}<div class="spec-pill">{% icon "leaf" %}{{ p.crops|truncatewords:5 }}</div>{% endif %}
+          {% if p.packing %}<div class="spec-pill">{% icon "box" %}{{ p.packing }}</div>{% endif %}
+        </div>
+        <div class="product-card-footer">
+          <a href="{{ p.get_absolute_url }}" class="btn-outline" onclick="event.stopPropagation()">{% icon "info-circle" %}Details</a>
+          <a href="{% url 'contact' %}?subject=Product+Enquiry" class="btn-primary" style="flex:1;justify-content:center" onclick="event.stopPropagation()">{% icon "envelope" %}Enquire</a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+    <div id="noResults" style="display:none;grid-column:1/-1;text-align:center;padding:48px 0;color:var(--text-3)">{% icon "search" style="font-size:2.5rem;display:block;margin-bottom:12px;color:var(--border)" %}<h4>No products match your search</h4><p>Try a different keyword or <a href="#" onclick="document.getElementById('prodFilter').value='';filterCards('');return false" style="color:var(--accent-blue)">clear the filter</a>.</p></div>
+  </div>
+  {% else %}
+  <div class="empty-state">{% icon "box-open" %}<h3>No {{ page_title }} listed yet</h3><p>Contact us directly — we stock a wide range of products not yet listed online.</p><a href="{% url 'contact' %}" class="btn-primary" style="margin-top:20px;display:inline-flex">{% icon "envelope" %}Ask About Availability</a></div>
+  {% endif %}
+</div></section>
+{% endblock %}
+{% block extra_js %}
+<script>
+function filterCards(q){const term=q.toLowerCase().trim(),cards=document.querySelectorAll('.product-card[data-search]');let shown=0;cards.forEach(c=>{const m=!term||c.dataset.search.includes(term);c.style.display=m?'':'none';if(m)shown++});document.getElementById('prodCount').textContent=shown+' product'+(shown!==1?'s':'');document.getElementById('noResults').style.display=shown===0?'block':'none'}
+document.getElementById('prodFilter')?.addEventListener('keydown',e=>{if(e.key==='Escape'){e.target.value='';filterCards('')}});
+</script>
+{% endblock %}

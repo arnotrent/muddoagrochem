@@ -1,0 +1,39 @@
+{% extends "admin/base_admin.html" %}{% load icons %}
+{% block title %}Supply Requests{% endblock %}{% block page_icon %}{% icon "truck" %}{% endblock %}{% block page_heading %}Supply Requests{% endblock %}
+{% block content %}
+<div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap">
+  <button onclick="filterSR('')" class="btn-admin btn-primary-admin" id="sf-all">All ({{ requests|length }})</button>
+  <button onclick="filterSR('pending')" class="btn-admin btn-secondary-admin" id="sf-pending">Pending</button>
+  <button onclick="filterSR('approved')" class="btn-admin btn-secondary-admin" id="sf-approved">Approved</button>
+  <button onclick="filterSR('denied')" class="btn-admin btn-secondary-admin" id="sf-denied">Denied</button>
+</div>
+<div class="admin-card"><div class="tbl-wrap">
+  <table class="data-table" id="srt"><thead><tr><th>Agent</th><th>Product</th><th>Qty</th><th>Notes</th><th>Status</th><th>Date</th><th>Respond</th></tr></thead>
+  <tbody>{% for r in requests %}<tr data-status="{{ r.status }}">
+    <td><strong>{{ r.agent.name }}</strong><br><small style="color:var(--text-3);font-size:.75rem">{{ r.agent.region|default:"—" }}</small></td>
+    <td><strong>{{ r.product_name }}</strong></td>
+    <td style="font-size:.86rem;color:var(--text-3)">{{ r.quantity }}</td>
+    <td style="font-size:.82rem;color:var(--text-3);max-width:180px">{{ r.notes|default:"—"|truncatechars:60 }}</td>
+    <td><span class="badge badge-{{ r.status }}">{{ r.status|title }}</span></td>
+    <td style="font-size:.78rem;color:var(--text-3);white-space:nowrap">{{ r.created_at|date:"d M Y" }}</td>
+    <td><button onclick="openRespond({{ r.id }},'{{ r.product_name|escapejs }}','{{ r.agent.name|escapejs }}')" class="btn-admin btn-primary-admin" style="padding:5px 12px;font-size:.8rem">{% icon "reply" %}Respond</button></td>
+  </tr>{% empty %}<tr><td colspan="7" style="text-align:center;color:var(--text-3);padding:32px">No supply requests yet.</td></tr>{% endfor %}</tbody>
+  </table>
+</div></div>
+<div id="srModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:2000;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--bg-card);border-radius:var(--r-card);padding:30px;max-width:480px;width:100%;box-shadow:var(--sh-lg);border:1px solid var(--border)">
+    <h3 style="font-size:1.05rem;font-weight:700;margin:0 0 6px">Respond to Supply Request</h3>
+    <p id="srDesc" style="font-size:.86rem;color:var(--text-3);margin:0 0 20px"></p>
+    <form id="srForm" method="POST">{% csrf_token %}
+      <div class="admin-form-group"><label>Decision</label><select name="status" class="admin-input"><option value="approved">✓ Approve</option><option value="denied">✗ Deny</option></select></div>
+      <div class="admin-form-group"><label>Response Message</label><textarea name="response" class="admin-input" rows="3" placeholder="Details on delivery, availability, or reason for denial…"></textarea></div>
+      <div style="display:flex;gap:10px"><button type="submit" class="btn-admin btn-primary-admin">{% icon "paper-plane" %}Send Response</button><button type="button" onclick="document.getElementById('srModal').style.display='none'" class="btn-admin btn-secondary-admin">{% icon "times" %}Cancel</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}<script>
+function filterSR(s){document.querySelectorAll('[id^="sf-"]').forEach(b=>b.className='btn-admin btn-secondary-admin');document.getElementById('sf-'+(s||'all')).className='btn-admin btn-primary-admin';document.querySelectorAll('#srt tbody tr[data-status]').forEach(r=>r.style.display=(!s||r.dataset.status===s)?'':'none')}
+function openRespond(id,prod,agent){document.getElementById('srDesc').textContent=agent+' — '+prod;document.getElementById('srForm').action='/admin-panel/supply-requests/'+id+'/respond/';document.getElementById('srModal').style.display='flex'}
+document.getElementById('srModal').addEventListener('click',function(e){if(e.target===this)this.style.display='none'});
+</script>{% endblock %}

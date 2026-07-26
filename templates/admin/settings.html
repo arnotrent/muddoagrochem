@@ -1,0 +1,30 @@
+{% extends "admin/base_admin.html" %}{% load icons %}
+{% block title %}Settings{% endblock %}{% block page_icon %}{% icon "cog" %}{% endblock %}{% block page_heading %}Settings{% endblock %}
+{% block content %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+  <div class="admin-card">
+    <div class="admin-card-header"><div class="admin-card-title">{% icon "lock" %}Change Admin Password</div></div>
+    <div class="admin-card-body"><form method="POST">{% csrf_token %}<input type="hidden" name="action" value="change_password">
+      <div class="admin-form-group"><label>Current Password <span>*</span></label><input name="old_password" type="password" class="admin-input" required></div>
+      <div class="admin-form-group"><label>New Password <span>*</span></label><input name="new_password" type="password" class="admin-input" placeholder="Minimum 8 characters" required></div>
+      <div class="admin-form-group"><label>Confirm New Password <span>*</span></label><input name="confirm_password" type="password" class="admin-input" required></div>
+      <button type="submit" class="btn-admin btn-primary-admin">{% icon "save" %}Update Password</button>
+    </form></div>
+  </div>
+  <div class="admin-card">
+    <div class="admin-card-header"><div class="admin-card-title">{% icon "key" %}Reset Agent Password</div></div>
+    <div class="admin-card-body"><form method="POST">{% csrf_token %}<input type="hidden" name="action" value="reset_agent_password">
+      <div class="admin-form-group"><label>Select Agent <span>*</span></label><select name="agent_id" class="admin-input" required><option value="">Choose agent…</option>{% for a in agents %}<option value="{{ a.id }}">{{ a.name }} (@{{ a.username }})</option>{% endfor %}</select></div>
+      <div class="admin-form-group"><label>New Password <span>*</span></label><input name="new_agent_password" type="password" class="admin-input" required></div>
+      <button type="submit" class="btn-admin btn-success-admin">{% icon "key" %}Reset Password</button>
+    </form></div>
+  </div>
+</div>
+<div class="admin-card">
+  <div class="admin-card-header"><div class="admin-card-title">{% icon "info-circle" %}System Information</div></div>
+  <div class="admin-card-body"><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">{% for label,value in sysinfo %}<div style="padding:14px 16px;background:var(--bg-alt);border-radius:10px;border:1px solid var(--border)"><div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:5px">{{ label }}</div><div style="font-size:.92rem;font-weight:700">{{ value }}</div></div>{% endfor %}</div></div>
+</div>
+<div class="admin-card" style="border-color:var(--accent-red)">
+  <div class="admin-card-header" style="background:rgba(239,68,68,.06)"><div class="admin-card-title" style="color:var(--accent-red)">{% icon "exclamation-triangle" %}Important Reminders</div></div>
+  <div class="admin-card-body"><ul style="font-size:.88rem;color:var(--text-2);line-height:2;margin:0;padding-left:20px"><li>Change the default admin password <strong>(muddo@admin2024)</strong> before going live.</li><li>Set <code>DEBUG=False</code> and a strong <code>DJANGO_SECRET_KEY</code> in production.</li><li>Add your Gmail App Password to enable email notifications.</li><li>Run <code>python manage.py collectstatic</code> after ANY CSS/JS/template change — Whitenoise caches hashed filenames, so edits won't show on the live site until this runs.</li></ul></div>
+</div>{% endblock %}

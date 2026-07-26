@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Contact Us — Muddo Agro{% endblock %}
+{% block nav_contact %}active{% endblock %}
+{% block content %}
+<section class="page-hero" style="background-size:cover;background-position:center;background-color:#0F172A"><div class="container">
+  <div class="breadcrumb"><a href="{% url 'index' %}">Home</a> / <span class="current">Contact</span></div>
+  <h1 style="margin:12px 0">Let's Talk</h1>
+  <p style="max-width:52ch">Got a pest problem, need a price, or just want to ask before you buy — we usually reply the same day.</p>
+</div></section>
+<section class="section"><div class="container">
+  <div style="display:grid;grid-template-columns:1fr 1.1fr;gap:48px">
+    <div>
+      <h2 style="font-size:1.4rem;margin-bottom:20px">A Few Ways to Reach Us</h2>
+      {% for icon,label,content,href in contact_items %}
+      <div style="display:flex;align-items:flex-start;gap:14px;padding:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;transition:border-color var(--dur)" onmouseover="this.style.borderColor='var(--accent-blue)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="width:40px;height:40px;border-radius:10px;background:var(--bg-alt);color:var(--accent-blue);display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0">{% icon icon %}</div>
+        <div><div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:4px">{{ label }}</div><div style="font-size:.92rem;color:var(--text-1);font-weight:600">{{ content|safe }}</div></div>
+      </div>{% endfor %}
+      <div style="margin-top:18px;padding:16px 18px;background:var(--bg-alt);border:1px solid var(--border);border-radius:14px;display:flex;justify-content:space-between;align-items:center;gap:12px">
+        <div><strong style="font-size:.9rem;color:var(--text-1);display:flex;align-items:center;gap:7px">{% icon "search" style="color:var(--accent-blue)" %}Track Your Enquiry</strong><p style="margin:4px 0 0;font-size:.82rem;color:var(--text-3)">Already submitted? Check status with your reference number.</p></div>
+        <a href="{% url 'track' %}" class="btn-primary" style="padding:9px 16px;font-size:.82rem;white-space:nowrap">{% icon "arrow-right" %}Track</a>
+      </div>
+    </div>
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-card);padding:32px">
+      <h3 style="font-size:1.3rem;margin-bottom:6px">Send Us a Message</h3>
+      <p style="color:var(--text-3);font-size:.88rem;margin-bottom:22px">We read every message ourselves — no call centre. Expect a reply within a business day, and you'll get a reference number so you can check on it anytime.</p>
+      <form method="POST">{% csrf_token %}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div style="margin-bottom:16px"><label>Full Name *</label><input type="text" name="name" required></div>
+          <div style="margin-bottom:16px"><label>Phone / WhatsApp</label><input type="tel" name="phone" placeholder="+256 7XX XXX XXX"></div>
+        </div>
+        <div style="margin-bottom:16px"><label>Email Address *</label><input type="email" name="email" required></div>
+        <div style="margin-bottom:16px"><label>Subject *</label><select name="subject" required><option value="">Select a topic…</option><option value="Product Enquiry" {% if request.GET.subject == "Product Enquiry" %}selected{% endif %}>Product Enquiry</option><option value="Pricing / Quotation">Pricing / Quotation</option><option value="Wholesale / Bulk Order">Wholesale / Bulk Order</option><option value="Distributor Partnership">Distributor Partnership</option><option value="Technical / Agronomy Advice">Technical / Agronomy Advice</option><option value="General Enquiry">General Enquiry</option></select></div>
+        <div style="margin-bottom:22px"><label>Message *</label><textarea name="message" rows="5" placeholder="Tell us what you need — product name, quantity, delivery location…" required></textarea></div>
+        <button type="submit" class="btn-primary" style="width:100%;justify-content:center">{% icon "paper-plane" %}Send Message</button>
+      </form>
+    </div>
+  </div>
+</div></section>
+{% endblock %}

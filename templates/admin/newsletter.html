@@ -1,0 +1,15 @@
+{% extends "admin/base_admin.html" %}{% load icons %}
+{% block title %}Newsletter{% endblock %}{% block page_icon %}{% icon "paper-plane" %}{% endblock %}{% block page_heading %}Newsletter Subscribers{% endblock %}
+{% block content %}
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:22px">
+  <div class="admin-card" style="margin-bottom:0;padding:18px 20px"><div style="font-size:.72rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Total Subscribers</div><div style="font-size:2rem;font-weight:700">{{ subscribers|length }}</div></div>
+  <div class="admin-card" style="margin-bottom:0;padding:18px 20px"><div style="font-size:.72rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Active</div><div style="font-size:2rem;font-weight:700;color:var(--accent-green)">{{ active_count }}</div></div>
+  <div class="admin-card" style="margin-bottom:0;padding:18px 20px"><div style="font-size:.72rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Unsubscribed</div><div style="font-size:2rem;font-weight:700;color:var(--text-3)">{{ subscribers|length|add:"-"|add:active_count }}</div></div>
+</div>
+<div class="admin-card">
+  <div class="admin-card-header"><div class="admin-card-title">{% icon "list" %}All Subscribers</div></div>
+  <div class="tbl-wrap"><table class="data-table"><thead><tr><th>#</th><th>Email</th><th>Name</th><th>Status</th><th>Subscribed</th></tr></thead>
+  <tbody>{% for s in subscribers %}<tr><td style="color:var(--text-3);font-size:.8rem">{{ forloop.counter }}</td><td><a href="mailto:{{ s.email }}" style="color:var(--accent-blue);font-weight:600">{{ s.email }}</a></td><td>{{ s.name|default:"—" }}</td><td><span class="badge {% if s.active %}badge-active{% else %}badge-inactive{% endif %}">{% if s.active %}Active{% else %}Unsubscribed{% endif %}</span></td><td style="font-size:.8rem;color:var(--text-3)">{{ s.subscribed_at|date:"d M Y" }}</td></tr>
+  {% empty %}<tr><td colspan="5" style="text-align:center;color:var(--text-3);padding:32px">No subscribers yet.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>{% endblock %}

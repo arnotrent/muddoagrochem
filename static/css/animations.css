@@ -1,0 +1,18 @@
+.scroll-progress { position:fixed; top:0; left:0; height:3px; z-index:10001; background:var(--accent-blue); pointer-events:none; transition:width .1s ease; }
+
+[data-reveal] { opacity:0; transform:translateY(22px); transition:opacity .6s var(--ease), transform .6s var(--ease); }
+[data-reveal].revealed { opacity:1; transform:none; }
+[data-reveal="scale"] { transform:scale(.96); }
+[data-reveal="scale"].revealed { transform:scale(1); }
+
+.hover-lift { transition:transform var(--dur) var(--ease), box-shadow var(--dur); }
+.hover-lift:hover { transform:translateY(-5px); box-shadow:var(--sh-md); }
+
+@keyframes dropFade { from{opacity:0; transform:translateY(-6px)} to{opacity:1; transform:none} }
+.dropdown-menu { animation: none; }
+.nav-dropdown:hover .dropdown-menu { animation: dropFade var(--dur) var(--ease); }
+
+@keyframes barGrow { from { transform:scaleY(0); } to { transform:scaleY(1); } }
+.chart-bar { transform-origin:bottom; animation:barGrow .6s var(--ease) both; }
+
+:focus-visible { outline:2px solid var(--accent-blue); outline-offset:2px; }

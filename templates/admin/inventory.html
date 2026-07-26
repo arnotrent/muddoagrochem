@@ -1,0 +1,35 @@
+{% extends "admin/base_admin.html" %}{% load icons %}
+{% block title %}Inventory{% endblock %}{% block page_icon %}{% icon "boxes" %}{% endblock %}{% block page_heading %}Inventory Management{% endblock %}
+{% block content %}
+<div class="admin-card">
+  <div class="admin-card-header"><div class="admin-card-title">{% icon "boxes" %}Stock Levels</div>
+    <input type="text" id="is" placeholder="Search…" oninput="document.querySelectorAll('#it tbody tr[data-search]').forEach(r=>r.style.display=r.dataset.search.includes(this.value.toLowerCase())?'':'')" style="width:200px">
+  </div>
+  <div class="tbl-wrap"><table class="data-table" id="it"><thead><tr><th>Product</th><th>Category</th><th>Stock</th><th>Unit</th><th>Reorder</th><th>Status</th><th>Update</th></tr></thead>
+  <tbody>{% for i in items %}<tr data-search="{{ i.product.name|lower }} {{ i.product.category }}">
+    <td><strong>{{ i.product.name }}</strong></td>
+    <td><span class="badge {% if i.product.category == 'pesticide' %}badge-denied{% elif i.product.category == 'herbicide' %}badge-approved{% elif i.product.category == 'fungicide' %}badge-new{% else %}badge-pending{% endif %}">{{ i.product.get_category_display }}</span></td>
+    <td><strong style="font-size:1.1rem">{{ i.stock_qty }}</strong></td>
+    <td style="color:var(--text-3);font-size:.86rem">{{ i.unit }}</td>
+    <td style="color:var(--text-3);font-size:.86rem">{{ i.reorder_level }}</td>
+    <td>{% if i.stock_qty == 0 %}<span class="badge badge-out">Out of Stock</span>{% elif i.is_low %}<span class="badge badge-low">Low Stock</span>{% else %}<span class="badge badge-in">OK</span>{% endif %}</td>
+    <td><div style="display:flex;gap:6px;align-items:center">
+      <input type="number" id="qty_{{ i.product.id }}" placeholder="Qty" min="0" style="width:70px;padding:6px 8px">
+      <select id="act_{{ i.product.id }}" style="padding:6px 8px"><option value="add">Add</option><option value="remove">Remove</option><option value="set">Set To</option></select>
+      <button onclick="updateStock({{ i.product.id }})" class="btn-admin btn-primary-admin" style="padding:6px 12px;font-size:.78rem">{% icon "check" %}</button>
+    </div></td>
+  </tr>{% empty %}<tr><td colspan="7" style="text-align:center;color:var(--text-3);padding:32px">No inventory records. Add products first.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+{% if log %}
+<div class="admin-card">
+  <div class="admin-card-header"><div class="admin-card-title">{% icon "history" %}Recent Activity</div></div>
+  <div class="tbl-wrap"><table class="data-table"><thead><tr><th>Product</th><th>Change</th><th>Reason</th><th>By</th><th>Date</th></tr></thead>
+  <tbody>{% for l in log %}<tr><td>{{ l.product.name }}</td><td><strong style="color:{% if l.change_qty >= 0 %}#22C55E{% else %}#EF4444{% endif %}">{% if l.change_qty >= 0 %}+{% endif %}{{ l.change_qty }}</strong></td><td style="color:var(--text-3);font-size:.84rem">{{ l.reason|default:"—" }}</td><td style="color:var(--text-3);font-size:.84rem">{{ l.changed_by|default:"system" }}</td><td style="color:var(--text-3);font-size:.78rem;white-space:nowrap">{{ l.created_at|date:"d M Y H:i" }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>{% endif %}
+{% endblock %}
+{% block extra_js %}<script>
+function getCookie(n){const v=`; ${document.cookie}`.split(`; ${n}=`);if(v.length===2)return v.pop().split(';').shift()}
+async function updateStock(pid){const qty=parseInt(document.getElementById(`qty_${pid}`).value),action=document.getElementById(`act_${pid}`).value;if(isNaN(qty)||qty<0)return;const r=await fetch('{% url "admin_update_inventory" %}',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRFToken':getCookie('csrftoken')},body:`product_id=${pid}&qty=${qty}&action=${action}&reason=Admin+update`});const d=await r.json();if(d.ok)setTimeout(()=>location.reload(),400)}
+</script>{% endblock %}

@@ -1,0 +1,62 @@
+{% load static icons %}
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Messages — Agent Portal</title>
+<link rel="icon" type="image/png" href="{% static 'images/logo_full.png' %}">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/theme_vars.css' %}">
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+<link rel="stylesheet" href="{% static 'css/admin.css' %}">
+<script>(function(){var t=localStorage.getItem('muddo-theme')||'light';document.documentElement.setAttribute('data-theme',t)})();</script>
+<style>
+body{margin:0;height:100vh;display:flex;flex-direction:column}
+.chat-topbar{height:60px;background:var(--bg-card);border-bottom:1px solid var(--border);padding:0 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.chat-wrap{display:flex;flex-direction:column;flex:1;min-height:0}
+</style>
+</head>
+<body data-user-id="{{ agent.id }}" data-user-role="agent" data-user-initial="{{ agent.name|first|upper }}">
+{% csrf_token %}{# ensures the csrftoken cookie is set — chat.js reads it for send/mark-read requests #}
+<div class="chat-topbar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <a href="{% url 'agent_dashboard' %}" style="color:var(--text-3);font-size:.9rem;padding:6px;border-radius:8px">{% icon "arrow-left" %}</a>
+    <img src="{% static 'images/logo_full.png' %}" alt="MACL" style="height:32px;border-radius:6px;background:var(--bg-alt);padding:2px">
+    <span style="font-weight:700;font-size:.92rem">Muddo Agro — Agent Portal</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <span style="font-size:.8rem;color:var(--text-3)">{{ agent.name }}</span>
+    <button class="theme-btn theme-toggle-nav"><span class="theme-icon-slot theme-icon-moon">{% icon "moon" %}</span><span class="theme-icon-slot theme-icon-sun">{% icon "sun" %}</span></button>
+    <a href="{% url 'logout' %}" style="font-size:.8rem;color:var(--text-3);padding:6px 10px;border-radius:8px;border:1px solid var(--border)">{% icon "sign-out-alt" %}</a>
+  </div>
+</div>
+<div class="chat-wrap">
+  <div class="chat-top-bar">
+    <div class="chat-avatar" style="background:var(--bg-deep)">A</div>
+    <div>
+      <div style="font-weight:700;font-size:.96rem">Muddo Agro Admin</div>
+      <div style="font-size:.74rem;color:var(--text-3);display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:var(--accent-green);display:inline-block"></span>Head Office · Kampala</div>
+    </div>
+    <div style="margin-left:auto;font-size:.78rem;color:var(--text-3)">{% icon "phone" style="color:var(--accent-blue);margin-right:5px" %}<a href="tel:+256772507582" style="color:var(--accent-blue)">+256 772 507582</a></div>
+  </div>
+  <div class="chat-msgs-wrap" id="chatMessages">
+    <div style="text-align:center;padding:40px;color:var(--text-3)">{% icon "comments" style="font-size:2.5rem;display:block;margin-bottom:12px;opacity:.3" %}<p style="font-size:.86rem">Loading messages…</p></div>
+  </div>
+  <div class="chat-input-row">
+    <textarea id="chatInput" placeholder="Type a message… (Enter to send, Shift+Enter for new line)"></textarea>
+    <button id="chatSendBtn" class="btn-admin btn-primary-admin">{% icon "paper-plane" %}</button>
+  </div>
+</div>
+<script>window._adminId={{ admin_id }};</script>
+<script src="{% static 'js/theme.js' %}"></script>
+<script src="{% static 'js/chat.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  document.getElementById('chatMessages').innerHTML='';
+  if(window.muddoChat){
+    const fake={dataset:{id:String(window._adminId),role:'admin',name:'Admin',status:'online'},classList:{remove(){},add(){}},querySelector(){return null}};
+    window.muddoChat.selectContact(fake);
+  }
+});
+</script>
+</body></html>

@@ -1,0 +1,36 @@
+{% extends "admin/base_admin.html" %}{% load icons %}
+{% block title %}Distributors{% endblock %}{% block page_icon %}{% icon "store" %}{% endblock %}{% block page_heading %}Distributor Outlets{% endblock %}
+{% block content %}
+<div style="display:grid;grid-template-columns:380px 1fr;gap:20px">
+  <div class="admin-card" style="align-self:start">
+    <div class="admin-card-header"><div class="admin-card-title">{% icon "plus-circle" %}Add Outlet</div></div>
+    <div class="admin-card-body"><form method="POST" action="{% url 'admin_add_distributor' %}">{% csrf_token %}
+      <div class="admin-form-group"><label>Outlet Name <span>*</span></label><input name="name" class="admin-input" required></div>
+      <div class="admin-form-group"><label>Region <span>*</span></label><select name="region" class="admin-input" required><option value="Central">Central</option><option value="Eastern">Eastern</option><option value="Northern">Northern</option><option value="Western">Western</option></select></div>
+      <div class="admin-form-group"><label>District <span>*</span></label><input name="district" class="admin-input" required></div>
+      <div class="admin-form-group"><label>Address</label><input name="address" class="admin-input"></div>
+      <div class="admin-form-group"><label>Phone</label><input name="phone" class="admin-input"></div>
+      <div class="admin-form-group"><label>Email</label><input name="email" type="email" class="admin-input"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="admin-form-group"><label>Latitude</label><input name="lat" type="number" step="any" value="0" class="admin-input"></div>
+        <div class="admin-form-group"><label>Longitude</label><input name="lng" type="number" step="any" value="0" class="admin-input"></div>
+      </div>
+      <button type="submit" class="btn-admin btn-primary-admin">{% icon "plus" %}Add Outlet</button>
+    </form></div>
+  </div>
+  <div class="admin-card" style="align-self:start">
+    <div class="admin-card-header"><div class="admin-card-title">{% icon "list" %}All Outlets ({{ distributors|length }})</div></div>
+    <div class="tbl-wrap"><table class="data-table"><thead><tr><th>Name</th><th>Region</th><th>District</th><th>Phone</th><th>Actions</th></tr></thead>
+    <tbody>{% for d in distributors %}<tr>
+      <td><strong>{{ d.name }}</strong>{% if d.address %}<br><small style="color:var(--text-3);font-size:.74rem">{{ d.address|truncatechars:40 }}</small>{% endif %}</td>
+      <td><span class="badge" style="background:var(--bg-alt);color:var(--accent-blue)">{{ d.region }}</span></td>
+      <td style="font-size:.86rem;color:var(--text-3)">{{ d.district }}</td>
+      <td><a href="tel:{{ d.phone }}" style="color:var(--accent-blue);font-size:.86rem">{{ d.phone|default:"—" }}</a></td>
+      <td><div style="display:flex;gap:5px">
+        {% if d.lat and d.lng %}<a href="https://www.google.com/maps?q={{ d.lat }},{{ d.lng }}" target="_blank" class="btn-admin btn-secondary-admin" style="padding:5px 9px;font-size:.76rem">{% icon "map-marker-alt" %}</a>{% endif %}
+        <form method="POST" action="{% url 'admin_delete_distributor' d.id %}" style="display:inline" class="js-confirm-submit" data-confirm-title="Delete this outlet?" data-confirm-body="&quot;{{ d.name }}&quot; will be permanently removed.">{% csrf_token %}<button type="submit" class="btn-admin btn-danger-admin" style="padding:5px 9px;font-size:.76rem">{% icon "trash" %}</button></form>
+      </div></td>
+    </tr>{% empty %}<tr><td colspan="5" style="text-align:center;color:var(--text-3);padding:28px">No outlets yet.</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+</div>{% endblock %}

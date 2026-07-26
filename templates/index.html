@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% load static muddo_filters icons %}
+{% block title %}Muddo Agro Chemicals LTD — Uganda's Trusted Agrochemical Distributor{% endblock %}
+{% block nav_home %}active{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/products.css' %}">{% endblock %}
+{% block content %}
+<section class="hero-photo" style="background-image:url('{% static 'images/hero_home.jpg' %}')">
+  <div class="container">
+    <div style="max-width:640px;padding:80px 0">
+      <div class="hero-badge" style="margin-bottom:18px">{% icon "certificate" %}MAAIF-Registered · Est. 2020</div>
+      <h1 style="margin:0 0 18px">Uganda's Trusted <span class="accent">Agrochemical</span> Partner</h1>
+      <p style="font-size:1.05rem;line-height:1.8;color:rgba(255,255,255,.88);max-width:52ch;margin-bottom:28px">Genuine pesticides, herbicides, fungicides, fertilizers and equipment. MAAIF-registered. Kampala-based. Nationwide reach.</p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:36px">
+        <a href="{% url 'pesticides' %}" class="btn-primary">{% icon "flask" %}Browse Products</a>
+        <a href="https://wa.me/{{ wa_number }}?text=Hello%20Muddo%20Agro" target="_blank" class="btn-primary" style="background:var(--accent-green);color:#0F172A;box-shadow:var(--glow-green)">{% icon "whatsapp" %}WhatsApp Us</a>
+        <a href="{% url 'contact' %}" class="btn-secondary" style="border-color:rgba(255,255,255,.4);color:#fff">{% icon "envelope" %}Enquire</a>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:420px">
+        {% with total=stats.pesticides|add:stats.herbicides|add:stats.fungicides|add:stats.other %}
+        <div class="hstat"><div class="hstat-num count-up" data-target="{{ total }}">0</div><div class="hstat-lbl">Products</div></div>{% endwith %}
+        <div class="hstat"><div class="hstat-num count-up" data-target="{{ stats.distributors }}">0</div><div class="hstat-lbl">Outlets</div></div>
+        <div class="hstat"><div class="hstat-num count-up" data-target="4">0</div><div class="hstat-lbl">Regions</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section"><div class="container">
+  <div class="section-header"><div class="section-tag">{% icon "th-large" %}Our Range</div><h2 class="section-title">Product Categories</h2><p class="section-desc">MAAIF-registered products across four specialist categories — all genuine, all in stock.</p></div>
+  <div class="cat-grid">
+    {% for icon,title,url_name,img in categories %}
+    <a href="{% url url_name %}" class="cat-card" data-reveal="scale" data-reveal-delay="{{ forloop.counter0|mul:80 }}">
+      <div class="cat-img"><img src="{{ img }}" alt="{{ title }}" loading="lazy" onerror="this.src='{% static 'images/products_all.jpg' %}'"></div>
+      <div class="cat-body">
+        <div style="width:34px;height:34px;border-radius:9px;background:var(--bg-alt);color:var(--accent-blue);display:flex;align-items:center;justify-content:center;font-size:.85rem;margin-bottom:9px">{% icon icon %}</div>
+        <div class="cat-title">{{ title }}</div>
+      </div>
+    </a>{% endfor %}
+  </div>
+</div></section>
+
+<section class="section-alt"><div class="container">
+  <div class="section-header"><div class="section-tag">{% icon "star" %}Popular</div><h2 class="section-title">Featured Products</h2><p class="section-desc">Trusted by thousands of Ugandan farmers — our most requested agrochemical solutions.</p></div>
+  <div class="products-grid">
+    {% for p in featured %}
+    <div class="product-card" data-reveal data-reveal-delay="{{ forloop.counter0|mul:80 }}" data-id="{{ p.id }}" data-name="{{ p.name }}" data-cat="{{ p.category }}" data-desc="{{ p.description|truncatechars:200 }}" data-img="{{ p.display_image }}" data-ingr="{{ p.active_ingredient }}" data-form="{{ p.formulation }}" data-crops="{{ p.crops }}" data-dose="{{ p.dosage }}" data-pack="{{ p.packing }}" data-stock="{{ p.stock_qty }}">
+      <div class="product-card-img">
+        <img src="{{ p.display_image }}" alt="{{ p.name }}" loading="lazy" onerror="this.src='{% static 'images/products_all.jpg' %}'">
+        {% if p.stock_qty == 0 %}<span class="stock-badge stock-out">{% icon "times-circle" %}Out of Stock</span>{% elif p.stock_qty <= 10 %}<span class="stock-badge stock-low">{% icon "exclamation-circle" %}Low Stock</span>{% else %}<span class="stock-badge stock-in">{% icon "check-circle" %}In Stock</span>{% endif %}
+        <button class="quick-view-btn">{% icon "eye" %}Quick View</button>
+      </div>
+      <div class="product-card-body">
+        <span class="product-tag tag-{{ p.category }}">{% if p.category == 'pesticide' %}{% icon "bug" %}{% elif p.category == 'herbicide' %}{% icon "seedling" %}{% elif p.category == 'fungicide' %}{% icon "microscope" %}{% else %}{% icon "boxes" %}{% endif %}{{ p.get_category_display }}</span>
+        <h3>{{ p.name }}</h3>
+        <p>{{ p.description|truncatewords:20 }}</p>
+        <div class="spec-pills">
+          {% if p.active_ingredient %}<div class="spec-pill"><strong>A.I.</strong>{{ p.active_ingredient|truncatewords:6 }}</div>{% endif %}
+          {% if p.packing %}<div class="spec-pill">{% icon "box" %}{{ p.packing }}</div>{% endif %}
+        </div>
+        <div class="product-card-footer">
+          <a href="{{ p.get_absolute_url }}" class="btn-outline" onclick="event.stopPropagation()">{% icon "info-circle" %}Details</a>
+          <a href="{% url 'contact' %}?subject=Product+Enquiry" class="btn-primary" style="flex:1;justify-content:center" onclick="event.stopPropagation()">{% icon "envelope" %}Enquire</a>
+        </div>
+      </div>
+    </div>{% endfor %}
+  </div>
+  <div style="text-align:center;margin-top:36px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+    <a href="{% url 'pesticides' %}" class="btn-outline">{% icon "bug" %}Pesticides</a>
+    <a href="{% url 'herbicides' %}" class="btn-outline">{% icon "seedling" %}Herbicides</a>
+    <a href="{% url 'fungicides' %}" class="btn-outline">{% icon "microscope" %}Fungicides</a>
+    <a href="{% url 'other_products' %}" class="btn-outline">{% icon "boxes" %}Fertilizers</a>
+  </div>
+</div></section>
+
+<section class="section-alt"><div class="container">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <img src="{% static 'images/why_quality.jpg' %}" alt="Pest identification close-up" style="width:100%;height:230px;object-fit:cover;border-radius:16px;box-shadow:var(--sh-md)">
+      <img src="{% static 'images/why_equipment.jpg' %}" alt="Application equipment" style="width:100%;height:230px;object-fit:cover;border-radius:16px;box-shadow:var(--sh-md);margin-top:32px">
+    </div>
+    <div>
+      <div class="section-tag">{% icon "microscope" %}Field-Tested</div>
+      <h2 class="section-title" style="text-align:left;margin-bottom:14px">We know the pest before we sell you the cure</h2>
+      <p style="line-height:1.8;margin-bottom:16px">Every product we stock is matched against real Ugandan field conditions — the actual aphids, whitefly and beetles farmers bring to us, not just a label. That's why we can tell you exactly which product fits your crop, not just sell you the most expensive one.</p>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:12px"><div style="width:36px;height:36px;border-radius:10px;background:var(--bg-alt);color:var(--accent-blue);display:flex;align-items:center;justify-content:center;flex-shrink:0">{% icon "check" %}</div><span style="font-size:.92rem;color:var(--text-2)">Genuine, MAAIF-registered active ingredients — never diluted</span></div>
+        <div style="display:flex;align-items:center;gap:12px"><div style="width:36px;height:36px;border-radius:10px;background:var(--bg-alt);color:var(--accent-blue);display:flex;align-items:center;justify-content:center;flex-shrink:0">{% icon "check" %}</div><span style="font-size:.92rem;color:var(--text-2)">Correct dosage guidance for your crop, not a generic label rate</span></div>
+        <div style="display:flex;align-items:center;gap:12px"><div style="width:36px;height:36px;border-radius:10px;background:var(--bg-alt);color:var(--accent-blue);display:flex;align-items:center;justify-content:center;flex-shrink:0">{% icon "check" %}</div><span style="font-size:.92rem;color:var(--text-2)">Application equipment sold and serviced alongside the chemical</span></div>
+      </div>
+    </div>
+  </div>
+</div></section>
+
+<section class="section"><div class="container">
+  <div class="section-header"><div class="section-tag">{% icon "award" %}Why Choose Us</div><h2 class="section-title">The MACL Difference</h2><p class="section-desc">Six reasons Uganda's farmers and distributors choose Muddo Agro Chemicals LTD.</p></div>
+  <div class="why-grid">
+    {% for icon,title,desc in why_cards %}
+    <div class="why-card" data-reveal data-reveal-delay="{{ forloop.counter0|mul:60 }}">
+      <div class="why-icon">{% icon icon %}</div>
+      <h3>{{ title }}</h3><p>{{ desc }}</p>
+    </div>{% endfor %}
+  </div>
+</div></section>
+
+<section class="page-hero" style="background-image:url('{% static 'images/hero_fertilizers.jpg' %}');padding:64px 0"><div class="container" style="text-align:center">
+  <div class="hero-badge" style="display:inline-flex;margin-bottom:16px">{% icon "headset" %}Expert Agronomy Advice — Free</div>
+  <h2 style="font-size:clamp(1.6rem,3vw,2.4rem);margin-bottom:10px">Not Sure Which Product to Use?</h2>
+  <p style="font-size:1rem;line-height:1.74;max-width:52ch;margin:0 auto 28px;color:rgba(255,255,255,.82)">Tell us your crop, pest or weed problem — our trained team will recommend the right product, dosage and timing for Ugandan conditions.</p>
+  <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+    <a href="https://wa.me/{{ wa_number }}?text=Hello%20MACL%2C%20I%20need%20advice" target="_blank" class="btn-primary" style="background:var(--accent-green);color:#0F172A;box-shadow:var(--glow-green)">{% icon "whatsapp" %}WhatsApp Us</a>
+    <a href="tel:+256772507582" class="btn-primary">{% icon "phone" %}+256 772 507582</a>
+    <a href="{% url 'contact' %}" class="btn-secondary" style="border-color:rgba(255,255,255,.4);color:#fff">{% icon "envelope" %}Send a Message</a>
+  </div>
+</div></section>
+{% endblock %}

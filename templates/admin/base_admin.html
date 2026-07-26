@@ -1,0 +1,67 @@
+{% load static icons %}
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>{% block title %}Admin{% endblock %} — MACL Admin</title>
+<link rel="icon" type="image/png" href="{% static 'images/logo_full.png' %}">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/theme_vars.css' %}">
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+<link rel="stylesheet" href="{% static 'css/admin.css' %}">
+{% block extra_head %}{% endblock %}
+<script>(function(){var t=localStorage.getItem('muddo-theme')||'light';document.documentElement.setAttribute('data-theme',t)})();</script>
+</head>
+<body data-user-id="{{ request.user.id }}" data-user-role="admin" data-user-initial="{{ request.user.get_full_name|first|upper|default:request.user.username|first|upper }}">
+<div class="admin-wrap">
+  <aside class="admin-sidebar">
+    <div class="sidebar-brand">
+      <img src="{% static 'images/logo_full.png' %}" alt="MACL">
+      <div><span class="sidebar-brand-name">MACL Admin</span><span class="sidebar-brand-sub">Muddo Agro Chemicals</span></div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-section">Dashboard</div>
+      <a href="{% url 'admin_dashboard' %}" class="sidebar-link {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">{% icon "tachometer-alt" %}Overview</a>
+      <div class="sidebar-section">Catalogue</div>
+      <a href="{% url 'admin_products' %}" class="sidebar-link {% if 'product' in request.resolver_match.url_name %}active{% endif %}">{% icon "flask" %}Products</a>
+      <a href="{% url 'admin_inventory' %}" class="sidebar-link {% if 'inventory' in request.resolver_match.url_name %}active{% endif %}">{% icon "boxes" %}Inventory</a>
+      <a href="{% url 'admin_distributors' %}" class="sidebar-link {% if 'distributor' in request.resolver_match.url_name %}active{% endif %}">{% icon "store" %}Distributors</a>
+      <div class="sidebar-section">Operations</div>
+      <a href="{% url 'admin_requests' %}" class="sidebar-link {% if request.resolver_match.url_name == 'admin_requests' %}active{% endif %}">{% icon "envelope" %}Enquiries{% if pending_count %}<span class="sidebar-badge" style="background:var(--accent-blue);color:#fff">{{ pending_count }}</span>{% endif %}</a>
+      <a href="{% url 'admin_supply_requests' %}" class="sidebar-link {% if 'supply' in request.resolver_match.url_name %}active{% endif %}">{% icon "truck" %}Supply Requests</a>
+      <a href="{% url 'admin_agents' %}" class="sidebar-link {% if 'agent' in request.resolver_match.url_name %}active{% endif %}">{% icon "users" %}Field Agents</a>
+      <a href="{% url 'admin_chat' %}" class="sidebar-link {% if 'chat' in request.resolver_match.url_name %}active{% endif %}">{% icon "comments" %}Messages{% if unread_count %}<span class="sidebar-badge" style="background:var(--accent-red);color:#fff">{{ unread_count }}</span>{% endif %}</a>
+      <div class="sidebar-section">Tools</div>
+      <a href="{% url 'admin_newsletter' %}" class="sidebar-link {% if 'newsletter' in request.resolver_match.url_name %}active{% endif %}">{% icon "paper-plane" %}Newsletter</a>
+      <a href="{% url 'admin_import' %}" class="sidebar-link {% if 'import' in request.resolver_match.url_name %}active{% endif %}">{% icon "upload" %}Import CSV</a>
+      <a href="{% url 'admin_settings' %}" class="sidebar-link {% if 'settings' in request.resolver_match.url_name %}active{% endif %}">{% icon "cog" %}Settings</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="{% url 'index' %}" class="sidebar-link" target="_blank">{% icon "globe" %}View Website</a>
+      <a href="{% url 'logout' %}" class="sidebar-link" style="color:var(--accent-red)">{% icon "sign-out-alt" %}Logout</a>
+    </div>
+  </aside>
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <div class="admin-topbar-title">{% block page_icon %}{% icon "tachometer-alt" %}{% endblock %}{% block page_heading %}Dashboard{% endblock %}</div>
+      <div style="display:flex;align-items:center;gap:14px">
+        <span style="font-size:.82rem;color:var(--text-3)">{{ request.user.get_full_name|default:request.user.username }}</span>
+        <div style="width:34px;height:34px;border-radius:50%;background:var(--accent-blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.88rem">{{ request.user.get_full_name|first|upper|default:request.user.username|first|upper }}</div>
+        <button class="theme-btn theme-toggle-nav" title="Toggle dark mode"><span class="theme-icon-slot theme-icon-moon">{% icon "moon" %}</span><span class="theme-icon-slot theme-icon-sun">{% icon "sun" %}</span></button>
+      </div>
+    </div>
+    <div class="admin-content">
+      {% if messages %}{% for message in messages %}
+      <div class="admin-flash {% if 'error' in message.tags %}flash-error{% else %}flash-success{% endif %}">
+        {% if 'error' in message.tags %}{% icon "exclamation-circle" %}{% else %}{% icon "check-circle" %}{% endif %}
+        <span>{{ message|safe }}</span>
+        <button onclick="this.closest('.admin-flash').remove()" style="background:none;border:none;cursor:pointer;margin-left:auto;color:inherit">{% icon "times" %}</button>
+      </div>{% endfor %}{% endif %}
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+</div>
+<script src="{% static 'js/theme.js' %}"></script>
+<script src="{% static 'js/confirm-modal.js' %}"></script>
+{% block extra_js %}{% endblock %}
+</body></html>

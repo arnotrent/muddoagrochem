@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load static icons %}
+{% block nav_products %}active{% endblock %}
+{% block title %}{{ product.name }} — Muddo Agro Chemicals LTD{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/products.css' %}">
+<style>
+.detail-grid{display:grid;grid-template-columns:1fr 1.55fr;gap:48px;align-items:start}
+.detail-img{border-radius:18px;overflow:hidden;border:1px solid var(--border);background:var(--bg-alt);aspect-ratio:4/3;position:sticky;top:80px}
+.detail-img img{width:100%;height:100%;object-fit:cover}
+.spec-table{width:100%;border-collapse:collapse;border-radius:12px;overflow:hidden;border:1px solid var(--border)}
+.spec-table thead{background:var(--bg-deep)}.spec-table th{padding:12px 16px;text-align:left;color:rgba(255,255,255,.7);font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.spec-table td:first-child{background:var(--bg-alt);font-size:.82rem;font-weight:700;color:var(--text-3);width:38%;padding:12px 16px;border-bottom:1px solid var(--border)}
+.spec-table td:last-child{padding:12px 16px;font-size:.9rem;color:var(--text-1);font-weight:600;border-bottom:1px solid var(--border)}
+.act-btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:13px 20px;border-radius:var(--r-btn);font-size:.9rem;font-weight:700;cursor:pointer;text-decoration:none;width:100%;box-sizing:border-box}
+</style>{% endblock %}
+{% block content %}
+<div class="page-hero" style="padding:44px 0"><div class="container">
+  <div class="breadcrumb">
+    <a href="{% url 'index' %}">Home</a> /
+    {% if product.category == 'pesticide' %}<a href="{% url 'pesticides' %}">Pesticides</a>{% elif product.category == 'herbicide' %}<a href="{% url 'herbicides' %}">Herbicides</a>{% elif product.category == 'fungicide' %}<a href="{% url 'fungicides' %}">Fungicides</a>{% else %}<a href="{% url 'other_products' %}">Fertilizers & Equipment</a>{% endif %} /
+    <span class="current">{{ product.name }}</span>
+  </div>
+  <span class="product-tag tag-{{ product.category }}" style="display:inline-flex">{% if product.category == 'pesticide' %}{% icon "bug" %}{% elif product.category == 'herbicide' %}{% icon "seedling" %}{% elif product.category == 'fungicide' %}{% icon "microscope" %}{% else %}{% icon "boxes" %}{% endif %}{{ product.get_category_display }}</span>
+</div></div>
+<section class="section" style="padding-top:36px"><div class="container">
+  <div class="detail-grid">
+    <div>
+      <div class="detail-img"><img src="{{ product.display_image }}" alt="{{ product.name }}" onerror="this.src='{% static 'images/products_all.jpg' %}'"></div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">
+        <a href="{% url 'contact' %}?subject=Product+Enquiry+{{ product.name|urlencode }}" class="act-btn btn-primary">{% icon "envelope" %}Enquire Now</a>
+        <a href="https://wa.me/{{ wa_number }}?text=Hello%20MACL%2C%20I%20am%20interested%20in%20{{ product.name|urlencode }}" target="_blank" class="act-btn" style="background:var(--accent-green);color:#0F172A">{% icon "whatsapp" %}WhatsApp Order</a>
+        <div style="display:flex;gap:10px">
+          <a href="{% url 'product_spec_sheet' product.id %}" class="act-btn btn-outline" style="flex:1;font-size:.82rem">{% icon "file-pdf" %}Spec Sheet</a>
+          <button onclick="window.print()" class="act-btn btn-outline" style="flex:1;font-size:.82rem">{% icon "print" %}Print</button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+        {% if product.stock_qty == 0 %}<span class="stock-badge stock-out" style="position:static;display:inline-flex">{% icon "times-circle" %}Out of Stock</span>{% elif product.stock_qty <= 10 %}<span class="stock-badge stock-low" style="position:static;display:inline-flex">{% icon "exclamation-circle" %}Low Stock</span>{% else %}<span class="stock-badge stock-in" style="position:static;display:inline-flex">{% icon "check-circle" %}In Stock</span>{% endif %}
+        <span style="font-size:.78rem;color:var(--text-3);background:var(--bg-alt);padding:5px 12px;border-radius:var(--r-badge);border:1px solid var(--border)">MAAIF Registered</span>
+      </div>
+      <h1 style="font-size:clamp(1.6rem,3vw,2.3rem);margin:0 0 14px;line-height:1.15">{{ product.name }}</h1>
+      {% if product.description %}<p style="font-size:1rem;line-height:1.82;color:var(--text-2);margin-bottom:24px;border-left:3px solid var(--accent-blue);padding-left:16px">{{ product.description }}</p>{% endif %}
+      <h3 style="font-size:.82rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;display:flex;align-items:center;gap:8px">{% icon "flask" style="color:var(--accent-blue)" %}Technical Specifications</h3>
+      <table class="spec-table" style="margin-bottom:22px">
+        <thead><tr><th colspan="2">Product Technical Data</th></tr></thead>
+        <tbody>{% for label,value in specs %}{% if value %}<tr><td>{{ label }}</td><td>{{ value }}</td></tr>{% endif %}{% endfor %}</tbody>
+      </table>
+      <div style="border-left:4px solid var(--accent-red);background:rgba(239,68,68,.06);border-radius:0 10px 10px 0;padding:14px 16px;margin-bottom:16px">
+        <p style="font-size:.85rem;color:var(--text-2);margin:0;line-height:1.65"><strong style="color:var(--accent-red)">{% icon "exclamation-triangle" %} Safe Use:</strong> Always read the complete label before use. Wear gloves, goggles and protective clothing. Observe pre-harvest intervals. Keep away from children and food.</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--bg-alt);border-radius:12px;border:1px solid var(--border)">
+        {% icon "certificate" style="color:var(--accent-blue);font-size:1.4rem;flex-shrink:0" %}
+        <p style="font-size:.84rem;color:var(--text-2);margin:0;line-height:1.55">All products distributed by MACL are registered with Uganda's Ministry of Agriculture, Animal Industry and Fisheries (MAAIF). Certificates available on request.</p>
+      </div>
+    </div>
+  </div>
+  {% if related %}
+  <div style="margin-top:64px">
+    <div class="section-header" style="margin-bottom:28px;text-align:left"><div class="section-tag">{% icon "layer-group" %}Related</div><h2 class="section-title">More {{ product.get_category_display }}s</h2></div>
+    <div class="products-grid" style="grid-template-columns:repeat(3,1fr)">
+      {% for r in related %}
+      <div class="product-card" data-id="{{ r.id }}" data-name="{{ r.name }}" data-cat="{{ r.category }}" data-desc="{{ r.description|truncatechars:200 }}" data-img="{{ r.display_image }}" data-ingr="{{ r.active_ingredient }}" data-form="{{ r.formulation }}" data-crops="{{ r.crops }}" data-dose="{{ r.dosage }}" data-pack="{{ r.packing }}" data-stock="{{ r.stock_qty }}">
+        <div class="product-card-img"><img src="{{ r.display_image }}" alt="{{ r.name }}" loading="lazy" onerror="this.src='{% static 'images/products_all.jpg' %}'"><button class="quick-view-btn">{% icon "eye" %}Quick View</button></div>
+        <div class="product-card-body">
+          <span class="product-tag tag-{{ r.category }}">{{ r.get_category_display }}</span>
+          <h3>{{ r.name }}</h3><p>{{ r.description|truncatewords:16 }}</p>
+          <div class="product-card-footer"><a href="{{ r.get_absolute_url }}" class="btn-outline">{% icon "info-circle" %}Details</a><a href="{% url 'contact' %}" class="btn-primary" style="flex:1;justify-content:center">{% icon "envelope" %}Enquire</a></div>
+        </div>
+      </div>{% endfor %}
+    </div>
+  </div>{% endif %}
+</div></section>
+{% endblock %}

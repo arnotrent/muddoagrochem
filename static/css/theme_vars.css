@@ -1,0 +1,98 @@
+/* ═══════════════════════════════════════════════════════════
+   MUDDO AGRO — THEME VARIABLES  v8  "SPEC-EXACT"
+   Built directly from themes.txt. Every hex value below is taken
+   verbatim from that spec — nothing approximated.
+═══════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── FONTS — Inter throughout, per spec ─────────────── */
+  --font-heading: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  --font-body:    'Inter', -apple-system, 'Segoe UI', sans-serif;
+
+  /* ── LIGHT THEME SURFACES ────────────────────────────── */
+  --bg:        #F8FAFC;
+  --bg-card:   #FFFFFF;
+  --bg-alt:    #F1F5F9;
+  --bg-input:  #FFFFFF;
+  --border:    #E5E7EB;
+
+  --text-1:    #111827;
+  --text-2:    #4B5563;
+  --text-3:    #6B7280;
+  --text-4:    #9CA3AF;
+
+  /* ── ACCENTS (identical in both themes) ─────────────── */
+  --accent-blue:       #38BDF8;
+  --accent-blue-hover: #0EA5E9;
+  --accent-blue-press: #0284C7;
+
+  --accent-red:        #EF4444;
+  --accent-red-hover:  #DC2626;
+
+  --accent-green:       #4ADE80;
+  --accent-green-hover: #22C55E;
+
+  --glow-blue:  0 0 0 1px rgba(56,189,248,.35), 0 4px 16px rgba(56,189,248,.35);
+  --glow-red:   0 0 0 1px rgba(239,68,68,.35),  0 4px 16px rgba(239,68,68,.35);
+  --glow-green: 0 0 0 1px rgba(74,222,128,.35), 0 4px 16px rgba(74,222,128,.35);
+
+  /* ── RADIUS / SHADOW SCALE ──────────────────────────── */
+  --r-btn:   10px;
+  --r-input: 10px;
+  --r-card:  16px;
+  --r-badge: 999px;
+
+  --sh-sm: 0 1px 3px rgba(17,24,39,.06), 0 1px 2px rgba(17,24,39,.04);
+  --sh-md: 0 4px 12px rgba(17,24,39,.08);
+  --sh-lg: 0 12px 32px rgba(17,24,39,.12);
+
+  /* ── MOTION ──────────────────────────────────────────── */
+  --dur: 250ms;
+  --ease: cubic-bezier(.22,1,.36,1);
+
+  /* ── LEGACY ALIASES — every old color name used across the
+     templates (orange, tan, mint, gold, sage, green…) now
+     resolves to the spec's blue/red/green so nothing breaks. */
+  --orange: var(--accent-blue); --orange-dark: var(--accent-blue-hover); --orange-light: var(--accent-blue);
+  --orange-glow: var(--accent-blue); --orange-pale: var(--bg-alt);
+  --mint: var(--accent-blue); --mint-dark: var(--accent-blue-hover); --mint-deep: var(--accent-blue-press);
+  --mint-glow: var(--accent-blue); --mint-pale: var(--bg-alt);
+  --tan: var(--accent-blue); --tan-dark: var(--accent-blue-hover); --tan-pale: var(--bg-alt);
+  --gold: var(--accent-blue);
+  --green-mid: var(--accent-green); --green-dark: var(--accent-green-hover); --green-deep: #15803D;
+  --green-pale: var(--bg-alt); --green-tint: var(--bg-alt);
+  --sage: var(--text-3); --sage-dark: var(--text-2); --sage-pale: var(--bg-alt);
+  --red: var(--accent-red); --red-dark: var(--accent-red-hover); --red-pale: var(--bg-alt);
+  --blue: var(--accent-blue); --blue-dark: var(--text-1); --blue-light: var(--accent-blue);
+  --blue-glow: var(--accent-blue); --blue-pale: var(--bg-alt); --blue-deep: #0F172A;
+  --macl-orange: var(--accent-blue); --macl-orange-dark: var(--accent-blue-hover); --macl-orange-pale: var(--bg-alt);
+
+  --text-primary: var(--text-1); --text-secondary: var(--text-2); --text-muted: var(--text-3);
+  --border-color: var(--border); --bg-base: var(--bg); --cream: var(--bg); --bg-deep: #0F172A;
+}
+
+/* ── DARK THEME ────────────────────────────────────────── */
+[data-theme="dark"] {
+  --bg:        #0F172A;
+  --bg-card:   #1F2937;
+  --bg-alt:    #1E293B;
+  --bg-input:  #1E293B;
+  --border:    #374151;
+
+  --text-1:    #F9FAFB;
+  --text-2:    #D1D5DB;
+  --text-3:    #9CA3AF;
+  --text-4:    #6B7280;
+
+  --orange-pale: #16243a; --mint-pale: #16243a; --tan-pale: #16243a;
+  --green-pale: #14251d; --sage-pale: #16243a; --red-pale: #2a1618; --blue-pale: #16243a;
+  --blue-dark: var(--text-1);
+
+  --text-primary: var(--text-1); --text-secondary: var(--text-2); --text-muted: var(--text-3);
+  --border-color: var(--border); --bg-deep: #05070c;
+}
+
+/* ── Respect reduced-motion preference (spec: accessibility) ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}

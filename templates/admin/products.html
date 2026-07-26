@@ -1,0 +1,102 @@
+{% extends "admin/base_admin.html" %}{% load icons %}
+{% block title %}Products{% endblock %}{% block page_icon %}{% icon "flask" %}{% endblock %}{% block page_heading %}Manage Products{% endblock %}
+{% block content %}
+<div class="admin-card">
+  <div class="admin-card-header"><div class="admin-card-title">{% icon "plus-circle" %}Add New Product</div></div>
+  <div class="admin-card-body">
+    <form method="POST" action="{% url 'admin_add_product' %}" enctype="multipart/form-data">{% csrf_token %}
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+        <div class="admin-form-group"><label>Product Name <span>*</span></label><input name="name" class="admin-input" required></div>
+        <div class="admin-form-group"><label>Category <span>*</span></label><select name="category" class="admin-input" required><option value="pesticide">Pesticide</option><option value="herbicide">Herbicide</option><option value="fungicide">Fungicide</option><option value="other">Other / Agri Input</option></select></div>
+        <div class="admin-form-group"><label>Active Ingredient</label><input name="active_ingredient" class="admin-input" placeholder="e.g. Glyphosate 480 g/l"></div>
+        <div class="admin-form-group"><label>Formulation</label><input name="formulation" class="admin-input" placeholder="e.g. Soluble Liquid (SL)"></div>
+        <div class="admin-form-group"><label>Target Crops</label><input name="crops" class="admin-input"></div>
+        <div class="admin-form-group"><label>Dosage / Rate</label><input name="dosage" class="admin-input"></div>
+        <div class="admin-form-group"><label>Pack Sizes</label><input name="packing" class="admin-input"></div>
+        <div class="admin-form-group"><label>Initial Stock Qty</label><input name="stock_qty" type="number" min="0" value="0" class="admin-input"></div>
+        <div class="admin-form-group"><label>Reorder Level</label><input name="reorder_level" type="number" min="0" value="10" class="admin-input"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="admin-form-group"><label>Product Image (upload)</label><input name="product_image" type="file" accept="image/*" class="admin-input"></div>
+        <div class="admin-form-group"><label>Or Image URL</label><input name="image_url" class="admin-input" placeholder="https://…"></div>
+      </div>
+      <div class="admin-form-group"><label>Description</label><textarea name="description" class="admin-input" rows="3"></textarea></div>
+      <button type="submit" class="btn-admin btn-primary-admin">{% icon "plus" %}Add Product</button>
+    </form>
+  </div>
+</div>
+<div class="admin-card">
+  <div class="admin-card-header"><div class="admin-card-title">{% icon "list" %}All Products</div>
+    <input type="text" id="ps" placeholder="Search…" oninput="document.querySelectorAll('#pt tbody tr[data-search]').forEach(r=>r.style.display=r.dataset.search.includes(this.value.toLowerCase())?'':'')" style="padding:7px 12px;border:1.5px solid var(--border-color);border-radius:9px;font-family:var(--font-body,'DM Sans',sans-serif);font-size:.84rem;background:var(--bg-input);color:var(--text-primary);width:200px;outline:none">
+  </div>
+  <div class="tbl-wrap">
+    <table class="data-table" id="pt"><thead><tr><th style="width:44px"></th><th>Product</th><th>Category</th><th>Active Ingredient</th><th>Pack Sizes</th><th>Stock</th><th>Actions</th></tr></thead>
+    <tbody>{% for p in products %}<tr data-search="{{ p.name|lower }} {{ p.active_ingredient|lower }} {{ p.category }}">
+      <td><img src="{{ p.display_image }}" style="width:40px;height:40px;object-fit:cover;border-radius:8px" onerror="this.style.display='none'"></td>
+      <td><strong>{{ p.name }}</strong>{% if p.description %}<br><small style="color:var(--text-muted);font-size:.76rem">{{ p.description|truncatechars:55 }}</small>{% endif %}</td>
+      <td><span class="badge {% if p.category == 'pesticide' %}badge-denied{% elif p.category == 'herbicide' %}badge-approved{% elif p.category == 'fungicide' %}badge-new{% else %}badge-pending{% endif %}">{{ p.get_category_display }}</span></td>
+      <td style="font-size:.82rem;color:var(--text-muted)">{{ p.active_ingredient|default:"—"|truncatechars:40 }}</td>
+      <td style="font-size:.82rem">{{ p.packing|default:"—" }}</td>
+      <td>{% if p.stock_qty == 0 %}<span class="badge badge-out">Out</span>{% elif p.stock_qty <= 10 %}<span class="badge badge-low">{{ p.stock_qty }}</span>{% else %}<span class="badge badge-in">{{ p.stock_qty }}</span>{% endif %}</td>
+      <td><div style="display:flex;gap:5px">
+        <a href="{{ p.get_absolute_url }}" target="_blank" class="btn-admin btn-secondary-admin" style="padding:5px 9px;font-size:.76rem">{% icon "eye" %}</a>
+        <a href="{% url 'product_spec_sheet' p.id %}" target="_blank" class="btn-admin btn-secondary-admin" style="padding:5px 9px;font-size:.76rem">{% icon "file-pdf" %}</a>
+        <button type="button" class="btn-admin btn-secondary-admin" style="padding:5px 9px;font-size:.76rem" onclick="openEditModal({{ p.id }},'{{ p.name|escapejs }}','{{ p.category }}','{{ p.active_ingredient|escapejs }}','{{ p.formulation|escapejs }}','{{ p.crops|escapejs }}','{{ p.dosage|escapejs }}','{{ p.packing|escapejs }}','{{ p.description|escapejs }}',{{ p.stock_qty }})">{% icon "edit" %}</button>
+        <form method="POST" action="{% url 'admin_delete_product' p.id %}" style="display:inline" class="js-confirm-submit" data-confirm-title="Delete this product?" data-confirm-body="&quot;{{ p.name }}&quot; will be permanently removed from the catalogue. This can't be undone.">{% csrf_token %}<button type="submit" class="btn-admin btn-danger-admin" style="padding:5px 9px;font-size:.76rem">{% icon "trash" %}</button></form>
+      </div></td>
+    </tr>{% empty %}<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:32px">No products yet. Run <code>python manage.py seed_data</code></td></tr>{% endfor %}</tbody>
+    </table>
+  </div>
+</div>
+
+<!-- EDIT PRODUCT MODAL -->
+<div id="editProductModal" style="display:none;position:fixed;inset:0;background:rgba(8,10,9,.55);z-index:4000;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--bg-card);border-radius:18px;padding:28px;max-width:640px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,.3);border:1.5px solid var(--border-color)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <h3 style="font-family:var(--font-heading,'DM Sans',sans-serif);font-size:1.1rem;font-weight:800;color:var(--text-primary);margin:0">{% icon "edit" style="color:var(--accent-blue);margin-right:8px" %}Edit Product</h3>
+      <button type="button" onclick="closeEditModal()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1.1rem">{% icon "times" %}</button>
+    </div>
+    <form method="POST" id="editProductForm" enctype="multipart/form-data">{% csrf_token %}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="admin-form-group"><label>Product Name <span>*</span></label><input name="name" id="ep_name" class="admin-input" required></div>
+        <div class="admin-form-group"><label>Category <span>*</span></label><select name="category" id="ep_category" class="admin-input" required><option value="pesticide">Pesticide</option><option value="herbicide">Herbicide</option><option value="fungicide">Fungicide</option><option value="other">Other / Agri Input</option></select></div>
+        <div class="admin-form-group"><label>Active Ingredient</label><input name="active_ingredient" id="ep_ai" class="admin-input"></div>
+        <div class="admin-form-group"><label>Formulation</label><input name="formulation" id="ep_form" class="admin-input"></div>
+        <div class="admin-form-group"><label>Target Crops</label><input name="crops" id="ep_crops" class="admin-input"></div>
+        <div class="admin-form-group"><label>Dosage / Rate</label><input name="dosage" id="ep_dosage" class="admin-input"></div>
+        <div class="admin-form-group"><label>Pack Sizes</label><input name="packing" id="ep_packing" class="admin-input"></div>
+        <div class="admin-form-group"><label>Stock Qty</label><input name="stock_qty" id="ep_stock" type="number" min="0" class="admin-input"></div>
+      </div>
+      <div class="admin-form-group"><label>Description</label><textarea name="description" id="ep_desc" class="admin-input" rows="3"></textarea></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="admin-form-group"><label>Replace Image (upload)</label><input name="product_image" type="file" accept="image/*" class="admin-input"></div>
+        <div class="admin-form-group"><label>Or New Image URL</label><input name="image_url" id="ep_imgurl" class="admin-input" placeholder="Leave blank to keep current image"></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:6px">
+        <button type="submit" class="btn-admin btn-primary-admin">{% icon "save" %}Save Changes</button>
+        <button type="button" onclick="closeEditModal()" class="btn-admin btn-secondary-admin">{% icon "times" %}Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+{% block extra_js %}<script>
+function openEditModal(id,name,cat,ai,form,crops,dosage,packing,desc,stock){
+  document.getElementById('editProductForm').action='/admin-panel/products/'+id+'/edit/';
+  document.getElementById('ep_name').value=name;
+  document.getElementById('ep_category').value=cat;
+  document.getElementById('ep_ai').value=ai;
+  document.getElementById('ep_form').value=form;
+  document.getElementById('ep_crops').value=crops;
+  document.getElementById('ep_dosage').value=dosage;
+  document.getElementById('ep_packing').value=packing;
+  document.getElementById('ep_desc').value=desc;
+  document.getElementById('ep_stock').value=stock;
+  document.getElementById('ep_imgurl').value='';
+  document.getElementById('editProductModal').style.display='flex';
+}
+function closeEditModal(){document.getElementById('editProductModal').style.display='none'}
+document.getElementById('editProductModal').addEventListener('click',function(e){if(e.target===this)closeEditModal()});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeEditModal()});
+</script>{% endblock %}

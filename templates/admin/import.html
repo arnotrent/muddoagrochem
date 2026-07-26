@@ -1,0 +1,22 @@
+{% extends "admin/base_admin.html" %}{% load icons %}
+{% block title %}Import Products{% endblock %}{% block page_icon %}{% icon "upload" %}{% endblock %}{% block page_heading %}Import Products via CSV{% endblock %}
+{% block content %}
+{% if results %}<div class="admin-flash {% if results.errors %}flash-error{% else %}flash-success{% endif %}" style="margin-bottom:22px">{% if results.errors %}{% icon "exclamation-circle" %}{% else %}{% icon "check-circle" %}{% endif %}<span>Import complete — <strong>{{ results.added }}</strong> added, <strong>{{ results.skipped }}</strong> skipped{% if results.errors %}, <strong>{{ results.errors|length }}</strong> error(s){% endif %}.</span></div>{% endif %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+  <div class="admin-card">
+    <div class="admin-card-header"><div class="admin-card-title">{% icon "upload" %}Upload CSV File</div></div>
+    <div class="admin-card-body"><p style="color:var(--text-3);font-size:.88rem;margin-bottom:20px">Upload a CSV file with product data. Existing products with the same name will be skipped.</p>
+    <form method="POST" enctype="multipart/form-data">{% csrf_token %}
+      <div class="admin-form-group"><label>CSV File <span>*</span></label><input type="file" name="csv_file" accept=".csv" class="admin-input" required></div>
+      <button type="submit" class="btn-admin btn-primary-admin">{% icon "upload" %}Import Now</button>
+    </form></div>
+  </div>
+  <div class="admin-card">
+    <div class="admin-card-header"><div class="admin-card-title">{% icon "table" %}CSV Format Guide</div></div>
+    <div class="admin-card-body"><p style="font-size:.84rem;color:var(--text-3);margin-bottom:12px">First row must have these headers:</p>
+      <div style="background:var(--bg-alt);border-radius:9px;padding:14px;font-family:monospace;font-size:.78rem;color:var(--text-2);border:1px solid var(--border);overflow-x:auto;white-space:nowrap">name, category, description, active_ingredient, formulation, crops, dosage, packing, image_url</div>
+      <div style="margin-top:16px"><p style="font-size:.82rem;font-weight:700;color:var(--text-3);margin-bottom:8px">Valid <code>category</code> values:</p><div style="display:flex;gap:7px;flex-wrap:wrap"><span class="badge badge-denied">pesticide</span><span class="badge badge-approved">herbicide</span><span class="badge badge-new">fungicide</span><span class="badge badge-pending">other</span></div></div>
+      <div style="margin-top:16px;padding:12px;background:var(--bg-alt);border-radius:9px"><p style="font-size:.8rem;color:var(--text-2);margin:0">{% icon "lightbulb" style="color:var(--accent-blue);margin-right:5px" %}Only <code>name</code> and <code>category</code> are required.</p></div>
+    </div>
+  </div>
+</div>{% endblock %}

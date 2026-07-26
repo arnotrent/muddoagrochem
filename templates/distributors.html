@@ -1,0 +1,59 @@
+{% extends "base.html" %}{% load static icons %}
+{% block title %}Find a Store — Muddo Agro{% endblock %}
+{% block nav_stores %}active{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+<style>#distMap{height:420px;border-radius:16px;overflow:hidden;border:1px solid var(--border);margin-bottom:32px}
+.leaflet-popup-content-wrapper{border-radius:12px;font-family:var(--font-body)}
+.leaflet-popup-content b{color:var(--text-1)}</style>
+{% endblock %}
+{% block content %}
+<section class="page-hero" style="background-color:#0F172A"><div class="container">
+  <div class="breadcrumb"><a href="{% url 'index' %}">Home</a> / <span class="current">Find a Store</span></div>
+  <h1 style="margin:12px 0">Find a Store Near You</h1>
+  <p style="max-width:55ch">{{ distributors|length }} authorised MACL outlets across all four regions of Uganda.</p>
+</div></section>
+<section class="section"><div class="container">
+  <div id="distMap"></div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:28px">
+    <button onclick="filterRegion('',this)" class="cat-tab active" id="btn-all">All Regions</button>
+    {% for region in regions %}<button onclick="filterRegion('{{ region }}',this)" class="cat-tab" id="btn-{{ region }}">{{ region }}</button>{% endfor %}
+    <div style="margin-left:auto;position:relative">{% icon "search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-3);font-size:.82rem" %}<input type="text" id="distSearch" placeholder="Search by name or district…" oninput="searchDist()" style="padding-left:34px;width:240px"></div>
+    <span id="distCount" style="font-size:.82rem;font-weight:700;color:var(--text-3);padding:8px 12px;background:var(--bg-alt);border-radius:8px">{{ distributors|length }} outlets</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:18px" id="distGrid">
+    {% for d in distributors %}
+    <div class="hover-lift" style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:22px;cursor:pointer" data-region="{{ d.region }}" data-search="{{ d.name|lower }} {{ d.district|lower }} {{ d.region|lower }}" onclick="focusOnMap({{ d.lat }},{{ d.lng }},'{{ d.name|escapejs }}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+        <div><div style="font-weight:700;font-size:1rem;color:var(--text-1);margin-bottom:5px">{{ d.name }}</div>
+          <span class="badge" style="background:var(--bg-alt);color:var(--accent-blue)">{{ d.region }}</span>
+          <span style="font-size:.72rem;color:var(--text-3);margin-left:6px">{{ d.district }}</span>
+        </div>
+        <div style="width:40px;height:40px;border-radius:10px;background:var(--bg-alt);color:var(--accent-blue);display:flex;align-items:center;justify-content:center;flex-shrink:0">{% icon "store" %}</div>
+      </div>
+      {% if d.address %}<p style="font-size:.85rem;color:var(--text-3);margin:0 0 7px">{% icon "map-marker-alt" style="color:var(--accent-blue);margin-right:6px" %}{{ d.address }}</p>{% endif %}
+      {% if d.phone %}<p style="font-size:.88rem;margin:0 0 7px;font-weight:600">{% icon "phone" style="color:var(--accent-blue);margin-right:6px" %}<a href="tel:{{ d.phone }}" style="color:var(--accent-blue)" onclick="event.stopPropagation()">{{ d.phone }}</a></p>{% endif %}
+      {% if d.lat and d.lng %}<a href="https://www.google.com/maps?q={{ d.lat }},{{ d.lng }}" target="_blank" onclick="event.stopPropagation()" class="btn-outline btn-sm" style="display:inline-flex;margin-top:6px">{% icon "directions" %}Get Directions</a>{% endif %}
+    </div>{% endfor %}
+  </div>
+  <div id="noDistResults" style="display:none;text-align:center;padding:48px 0;color:var(--text-3)">No outlets match your search. <a href="{% url 'contact' %}" style="color:var(--accent-blue)">Contact us directly</a>.</div>
+</div></section>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+const DISTRIBUTORS=[{% for d in distributors %}{name:"{{ d.name|escapejs }}",region:"{{ d.region }}",district:"{{ d.district|escapejs }}",lat:{{ d.lat }},lng:{{ d.lng }},phone:"{{ d.phone|escapejs }}"}{% if not forloop.last %},{% endif %}{% endfor %}];
+let distMap,distMarkers=[];
+function initDistMap(){
+  distMap=L.map('distMap',{scrollWheelZoom:false}).setView([1.3733,32.2903],6.4);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors',maxZoom:18}).addTo(distMap);
+  const pin=L.divIcon({className:'',html:'<div style="width:28px;height:28px;border-radius:50% 50% 50% 0;background:#38BDF8;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3)"></div>',iconSize:[28,28],iconAnchor:[14,28]});
+  DISTRIBUTORS.forEach(d=>{ if(!d.lat||!d.lng)return; const m=L.marker([d.lat,d.lng],{icon:pin}).addTo(distMap); m.bindPopup(`<b>${d.name}</b><br>${d.district}, ${d.region}${d.phone?'<br><a href="tel:'+d.phone+'">'+d.phone+'</a>':''}`); m._n=d.name; distMarkers.push(m); });
+}
+function focusOnMap(lat,lng,name){ if(!distMap)return; distMap.setView([lat,lng],13,{animate:true}); const m=distMarkers.find(mk=>mk._n===name); if(m)m.openPopup(); document.getElementById('distMap').scrollIntoView({behavior:'smooth',block:'center'}); }
+document.addEventListener('DOMContentLoaded',initDistMap);
+let activeRegion='';
+function filterRegion(r,btn){activeRegion=r;document.querySelectorAll('[id^="btn-"]').forEach(b=>b.className='cat-tab');btn.className='cat-tab active';applyFilters()}
+function searchDist(){applyFilters()}
+function applyFilters(){const q=document.getElementById('distSearch').value.toLowerCase();const cards=document.querySelectorAll('#distGrid>div[data-region]');let shown=0;cards.forEach(c=>{const mR=!activeRegion||c.dataset.region===activeRegion;const mQ=!q||c.dataset.search.includes(q);c.style.display=mR&&mQ?'':'none';if(mR&&mQ)shown++});document.getElementById('distCount').textContent=shown+' outlet'+(shown!==1?'s':'');document.getElementById('noDistResults').style.display=shown===0?'block':'none';
+  if(distMarkers.length){distMarkers.forEach(m=>{const match=DISTRIBUTORS.find(d=>d.name===m._n);const vis=match&&(!activeRegion||match.region===activeRegion)&&(!q||(match.name+match.district).toLowerCase().includes(q));if(vis){if(!distMap.hasLayer(m))m.addTo(distMap)}else{if(distMap.hasLayer(m))distMap.removeLayer(m)}})}}
+</script>
+{% endblock %}
