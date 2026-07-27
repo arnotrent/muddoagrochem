@@ -97,18 +97,86 @@ def admin_update_request(request,rid):
         cr=get_object_or_404(ContactRequest,pk=rid); cr.status=request.POST.get('status','resolved'); cr.save(update_fields=['status'])
     return redirect('admin_requests')
 
+# ─────────────────────────────────────────────────────────────────
+# DISTRIBUTOR LOCATION SAFEGUARDS
+#
+# Rough bounding boxes (min_lat, max_lat, min_lng, max_lng) for the
+# countries we support. This is a coarse, dependency-free guard —
+# it exists purely to catch gross data-entry mistakes (a pin dropped
+# in the ocean, on a different continent, etc). It is NOT a precise
+# border/land check; the admin-side map also runs a live reverse-geocode
+# lookup (OpenStreetMap Nominatim) so the person entering the outlet
+# gets an immediate "this looks like it's outside <country>" warning
+# before they even submit the form.
+# ─────────────────────────────────────────────────────────────────
+COUNTRY_BOUNDS = {
+    'Uganda':      (-1.50,  4.30, 29.50, 35.10),
+    'Kenya':       (-4.90,  5.20, 33.90, 41.90),
+    'Tanzania':    (-11.80, -0.90, 29.30, 40.50),
+    'Rwanda':      (-2.95, -1.00, 28.80, 30.95),
+    'Burundi':     (-4.50, -2.30, 28.90, 30.90),
+    'South Sudan': (3.40,  12.30, 24.10, 35.95),
+    'DR Congo':    (-13.50, 5.40, 12.15, 31.30),
+}
+
+def _within_country(country, lat, lng):
+    b = COUNTRY_BOUNDS.get(country)
+    if not b:  # 'Other' or an unrecognised value — nothing to check against
+        return True
+    min_lat, max_lat, min_lng, max_lng = b
+    return min_lat <= lat <= max_lat and min_lng <= lng <= max_lng
+
 @staff_member_required
 def admin_distributors(request):
-    return render(request,'admin/distributors.html',{'distributors':Distributor.objects.order_by('region','name')})
+    return render(request,'admin/distributors.html',{
+        'distributors':Distributor.objects.order_by('country','region','name'),
+        'countries': Distributor.COUNTRIES,
+    })
 
 @staff_member_required
 def admin_add_distributor(request):
     if request.method=='POST':
-        Distributor.objects.create(name=request.POST.get('name','').strip(),region=request.POST.get('region','').strip(),
+        country = (request.POST.get('country','Uganda') or 'Uganda').strip()
+        try:
+            lat=float(request.POST.get('lat',0) or 0); lng=float(request.POST.get('lng',0) or 0)
+        except ValueError:
+            lat=lng=0.0
+        if (lat, lng) == (0.0, 0.0):
+            messages.error(request, 'Please pick the outlet\u2019s exact spot on the map before saving \u2014 the location was left blank.')
+            return redirect('admin_distributors')
+        if not _within_country(country, lat, lng):
+            messages.error(request, f'That map pin doesn\u2019t fall inside {country} \u2014 it looks like it\u2019s over water, or in another country. Please reposition it and try again.')
+            return redirect('admin_distributors')
+        Distributor.objects.create(name=request.POST.get('name','').strip(),country=country,
+            region=request.POST.get('region','').strip(),
             district=request.POST.get('district','').strip(),address=request.POST.get('address','').strip(),
             phone=request.POST.get('phone','').strip(),email=request.POST.get('email','').strip(),
-            lat=float(request.POST.get('lat',0) or 0),lng=float(request.POST.get('lng',0) or 0))
+            lat=lat,lng=lng)
         messages.success(request,'Distributor added!')
+    return redirect('admin_distributors')
+
+@staff_member_required
+def admin_edit_distributor(request, did):
+    d = get_object_or_404(Distributor, pk=did)
+    if request.method == 'POST':
+        country = (request.POST.get('country', d.country) or d.country).strip()
+        try:
+            lat=float(request.POST.get('lat', d.lat) or d.lat); lng=float(request.POST.get('lng', d.lng) or d.lng)
+        except ValueError:
+            lat, lng = d.lat, d.lng
+        if not _within_country(country, lat, lng):
+            messages.error(request, f'That map pin doesn\u2019t fall inside {country} \u2014 it looks like it\u2019s over water, or in another country. Please reposition it and try again.')
+            return redirect('admin_distributors')
+        d.name     = request.POST.get('name', d.name).strip()
+        d.country  = country
+        d.region   = request.POST.get('region', d.region).strip()
+        d.district = request.POST.get('district', d.district).strip()
+        d.address  = request.POST.get('address', '').strip()
+        d.phone    = request.POST.get('phone', '').strip()
+        d.email    = request.POST.get('email', '').strip()
+        d.lat, d.lng = lat, lng
+        d.save()
+        messages.success(request, f'"{d.name}" updated!')
     return redirect('admin_distributors')
 
 @staff_member_required
