@@ -4,6 +4,8 @@ img { max-width:100%; height:auto; display:block; }
 @media (min-width:640px) { .container{ padding:0 20px; } }
 @media (min-width:1024px) { .container{ padding:0 32px; } }
 
+@media (max-width:700px) { .stack-mobile{ grid-template-columns:1fr !important; } }
+
 @media (max-width:900px) { .kpi-grid{ grid-template-columns:1fr 1fr !important; } }
 @media (max-width:480px) { .kpi-grid{ grid-template-columns:1fr !important; } }
 @media (max-width:767px) {
