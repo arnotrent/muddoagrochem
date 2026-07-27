@@ -1,11 +1,13 @@
 /* ═══════════════════════════════════════════════════════════════
-   MUDDO AGRO — CHAT SYSTEM  v2
-   Fixes vs v1:
-   - CSRF token was never sent on POST requests (api/chat/send,
-     api/chat/mark-read) → Django was silently rejecting every
-     message with a 403. This is why sending/marking-read "failed".
-   - Reads token from a <meta name="csrf-token"> tag OR the
-     'csrftoken' cookie, whichever is present.
+   MUDDO AGRO — CHAT SYSTEM  v3
+   Fixes vs v2:
+   - Every fetch() now hits the EXACT url from urls.py (trailing
+     slash included). v2 called e.g. /api/chat/send (no slash) while
+     urls.py defines api/chat/send/ — in production (DEBUG=False)
+     Django's APPEND_SLASH redirect turns that POST into a GET on
+     redirect, silently dropping the message body + CSRF token. This
+     was the actual reason sends/mark-read looked broken.
+   - Added broadcast support ("All Agents" thread, admin-only).
    ═══════════════════════════════════════════════════════════════ */
 
 function getCsrfToken() {
@@ -33,12 +35,9 @@ class MuddoChat {
     this.myId         = parseInt(document.body.dataset.userId || '0', 10);
     this.myRole       = document.body.dataset.userRole || 'agent';
 
-    // Grouping state — lets consecutive messages from the same sender
-    // on the same day collapse together with one avatar, WhatsApp-style,
-    // without literally cloning WhatsApp's look.
-    this.lastDateKey  = null;
+    this.lastDateKey   = null;
     this.lastSenderKey = null;
-    this.lastRow      = null;
+    this.lastRow       = null;
 
     if (this.sendBtn)  this.sendBtn.addEventListener('click', () => this.sendMessage());
     if (this.inputBox) {
@@ -51,8 +50,6 @@ class MuddoChat {
       });
     }
 
-    // Contact click handlers (bound once, here — templates should NOT
-    // also bind their own click listener to avoid double-firing)
     document.querySelectorAll('.chat-contact[data-id]').forEach(el => {
       el.addEventListener('click', () => this.selectContact(el));
     });
@@ -79,12 +76,17 @@ class MuddoChat {
       role: el.dataset.role || 'agent',
       name: el.dataset.name || 'User',
     };
+    const isBroadcast = this.currentWith.role === 'broadcast';
 
-    if (this.headerName)   this.headerName.textContent   = this.currentWith.name;
-    if (this.headerStatus) this.headerStatus.innerHTML   = `<span class="status-dot ${el.dataset.status || 'offline'}"></span> ${el.dataset.status === 'online' ? 'Online now' : 'Offline'}`;
-    if (this.headerAvatar) this.headerAvatar.textContent = this.currentWith.name.charAt(0).toUpperCase();
-    if (this.chatMain)     this.chatMain.style.display   = 'flex';
-    if (this.chatEmpty)    this.chatEmpty.style.display  = 'none';
+    if (this.headerName)   this.headerName.textContent = this.currentWith.name;
+    if (this.headerStatus) {
+      this.headerStatus.innerHTML = isBroadcast
+        ? 'Sends to every active field agent at once'
+        : `<span class="status-dot ${el.dataset.status || 'offline'}"></span> ${el.dataset.status === 'online' ? 'Online now' : 'Offline'}`;
+    }
+    if (this.headerAvatar) this.headerAvatar.textContent = isBroadcast ? '📢' : this.currentWith.name.charAt(0).toUpperCase();
+    if (this.chatMain)     this.chatMain.style.display  = 'flex';
+    if (this.chatEmpty)    this.chatEmpty.style.display = 'none';
 
     this.lastMsgId = 0;
     this.lastDateKey = null;
@@ -100,8 +102,11 @@ class MuddoChat {
 
   async loadMessages(scroll) {
     if (!this.currentWith) return;
+    const isBroadcast = this.currentWith.role === 'broadcast';
     try {
-      const url = `/api/chat/messages?with_id=${this.currentWith.id}&with_role=${this.currentWith.role}&after=${this.lastMsgId}`;
+      const url = isBroadcast
+        ? `/api/chat/messages/?with_role=broadcast&after=${this.lastMsgId}`
+        : `/api/chat/messages/?with_id=${this.currentWith.id}&with_role=${this.currentWith.role}&after=${this.lastMsgId}`;
       const res  = await fetch(url);
       if (!res.ok) { console.warn('Chat load failed:', res.status); return; }
       const data = await res.json();
@@ -118,17 +123,17 @@ class MuddoChat {
         const atBottom  = container.scrollHeight - container.scrollTop - container.clientHeight < 80;
         if (atBottom) this.scrollBottom();
       }
-      fetch(`/api/chat/mark-read`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrfToken },
-        body: JSON.stringify({ from_id: this.currentWith.id, from_role: this.currentWith.role })
-      }).catch(() => {});
+      if (!isBroadcast) {
+        fetch(`/api/chat/mark-read/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrfToken },
+          body: JSON.stringify({ from_id: this.currentWith.id, from_role: this.currentWith.role })
+        }).catch(() => {});
+      }
     } catch(e) { console.warn('Chat load error:', e); }
   }
 
-  dateKeyFor(dateObj) {
-    return dateObj.toDateString();
-  }
+  dateKeyFor(dateObj) { return dateObj.toDateString(); }
 
   dateLabelFor(dateObj) {
     const today = new Date(); const yest = new Date(); yest.setDate(today.getDate() - 1);
@@ -139,12 +144,11 @@ class MuddoChat {
 
   appendMessage(m) {
     const isSent = (m.sender_role === this.myRole && m.sender_id === this.myId);
-    const initial = isSent ? this.myInitial : (this.currentWith?.name?.charAt(0) || '?');
+    const initial = isSent ? this.myInitial : (m.is_broadcast ? '📢' : (this.currentWith?.name?.charAt(0) || '?'));
     const msgDate = new Date(m.created_at);
     const dateKey = this.dateKeyFor(msgDate);
     const time = msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    // New day → drop in a date pill and force a fresh group
     if (dateKey !== this.lastDateKey) {
       const sep = document.createElement('div');
       sep.className = 'chat-date-sep';
@@ -154,10 +158,9 @@ class MuddoChat {
       this.lastSenderKey = null;
     }
 
-    const senderKey = `${m.sender_role}:${m.sender_id}`;
+    const senderKey = `${m.sender_role}:${m.sender_id}:${m.is_broadcast ? 'b' : 'd'}`;
     const grouped = senderKey === this.lastSenderKey;
 
-    // Collapse the previous row's avatar when this message continues its group
     if (grouped && this.lastRow) {
       const prevSlot = this.lastRow.querySelector('.msg-avatar-slot');
       if (prevSlot) prevSlot.style.visibility = 'hidden';
@@ -167,9 +170,10 @@ class MuddoChat {
     const wrapper = document.createElement('div');
     wrapper.className = `msg-row ${isSent ? 'sent' : 'received'}`;
     if (grouped) wrapper.style.marginTop = '2px';
+    const broadcastTag = (m.is_broadcast && !isSent) ? '<span class="msg-broadcast-tag">Broadcast</span><br>' : '';
     wrapper.innerHTML = `
       <div class="msg-avatar-slot"><div class="msg-avatar ${isSent ? 'sent-avatar' : ''}">${initial}</div></div>
-      <div class="msg-bubble">${this.escapeHtml(m.content)}<span class="msg-time">${time}${isSent ? ' <svg class="icon" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.8;vertical-align:-1px"><polyline points="1 13 5 17 11 9"/><polyline points="7 13 11 17 21 5"/></svg>' : ''}</span></div>
+      <div class="msg-bubble">${broadcastTag}${this.escapeHtml(m.content)}<span class="msg-time">${time}${isSent ? ' <svg class="icon" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.8;vertical-align:-1px"><polyline points="1 13 5 17 11 9"/><polyline points="7 13 11 17 21 5"/></svg>' : ''}</span></div>
     `;
     this.container.appendChild(wrapper);
 
@@ -182,12 +186,17 @@ class MuddoChat {
     if (!content || !this.currentWith) return;
     this.inputBox.value = '';
     this.inputBox.style.height = 'auto';
+    const isBroadcast = this.currentWith.role === 'broadcast';
+
+    const body = isBroadcast
+      ? { broadcast: true, content }
+      : { to_id: this.currentWith.id, to_role: this.currentWith.role, content };
 
     try {
-      const res = await fetch('/api/chat/send', {
+      const res = await fetch('/api/chat/send/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrfToken },
-        body: JSON.stringify({ to_id: this.currentWith.id, to_role: this.currentWith.role, content })
+        body: JSON.stringify(body)
       });
       if (!res.ok) {
         console.error('Send failed:', res.status);
@@ -199,9 +208,11 @@ class MuddoChat {
       if (data.message) {
         this.appendMessage(data.message);
         this.scrollBottom();
-        const contact = document.querySelector(`.chat-contact[data-id="${this.currentWith.id}"]`);
-        const preview = contact?.querySelector('.chat-contact-preview');
-        if (preview) preview.textContent = 'You: ' + content.substring(0, 40);
+        const contactEl = document.querySelector(`.chat-contact[data-id="${this.currentWith.id}"][data-role="${this.currentWith.role}"]`);
+        const preview = contactEl?.querySelector('.chat-contact-preview');
+        if (preview) preview.innerHTML = '<span class="you-prefix">You: </span>' + this.escapeHtml(content.substring(0, 40));
+        const timeEl = contactEl?.querySelector('.chat-contact-time');
+        if (timeEl) timeEl.textContent = new Date(data.message.created_at).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
       }
     } catch(e) { this.inputBox.value = content; }
   }
@@ -212,7 +223,7 @@ class MuddoChat {
 
   async pollUnread() {
     try {
-      const res  = await fetch('/api/chat/unread');
+      const res  = await fetch('/api/chat/unread/');
       if (!res.ok) return;
       const data = await res.json();
       const navBadge = document.getElementById('chatNavBadge');
@@ -234,8 +245,6 @@ class MuddoChat {
     } catch(e) { /* silent */ }
   }
 
-  /* Refreshes the online/offline dot on each contact + the
-     "X agents online" counter, without a full page reload. */
   async pollPresence() {
     try {
       const res = await fetch('/api/agents/status/');
@@ -249,7 +258,7 @@ class MuddoChat {
         contact.dataset.status = isOnline ? 'online' : 'offline';
         const dot = contact.querySelector('.online-dot, .offline-dot');
         if (dot) { dot.className = isOnline ? 'online-dot' : 'offline-dot'; }
-        if (this.currentWith && String(this.currentWith.id) === id && this.headerStatus) {
+        if (this.currentWith && this.currentWith.role === 'agent' && String(this.currentWith.id) === id && this.headerStatus) {
           this.headerStatus.innerHTML = `<span class="status-dot ${isOnline ? 'online' : 'offline'}"></span> ${isOnline ? 'Online now' : 'Offline'}`;
         }
       });
