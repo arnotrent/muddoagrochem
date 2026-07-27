@@ -1,36 +1,267 @@
 {% extends "admin/base_admin.html" %}{% load icons %}
 {% block title %}Distributors{% endblock %}{% block page_icon %}{% icon "store" %}{% endblock %}{% block page_heading %}Distributor Outlets{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+<style>
+.loc-picker{margin-top:8px}
+.loc-picker-map{height:280px;border-radius:12px;overflow:hidden;border:1.5px solid var(--border-color,var(--border));margin-bottom:8px}
+.loc-row{display:flex;gap:8px;margin-bottom:8px}
+.loc-row button{white-space:nowrap;padding:9px 14px;border-radius:var(--r-btn);border:1.5px solid var(--border-color,var(--border));background:var(--bg-alt);color:var(--text-2);font-weight:700;font-size:.8rem;cursor:pointer}
+.loc-row button:hover{border-color:var(--accent-blue);color:var(--accent-blue)}
+.loc-status{font-size:.78rem;padding:8px 12px;border-radius:9px;background:var(--bg-alt);color:var(--text-3);margin-bottom:6px;line-height:1.5}
+.loc-status.loc-ok{background:rgba(74,222,128,.12);color:#15803D}
+[data-theme="dark"] .loc-status.loc-ok{color:var(--accent-green)}
+.loc-status.loc-warn{background:rgba(239,68,68,.1);color:var(--accent-red);font-weight:600}
+.loc-status.loc-checking{background:var(--bg-alt);color:var(--text-3)}
+.loc-hint{font-size:.76rem;color:var(--text-3);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.loc-submit-warn{display:none;font-size:.8rem;color:var(--accent-red);font-weight:600;margin-bottom:10px;padding:8px 12px;background:rgba(239,68,68,.08);border-radius:9px}
+</style>
+{% endblock %}
 {% block content %}
-<div style="display:grid;grid-template-columns:380px 1fr;gap:20px">
+<div style="display:grid;grid-template-columns:420px 1fr;gap:20px">
   <div class="admin-card" style="align-self:start">
     <div class="admin-card-header"><div class="admin-card-title">{% icon "plus-circle" %}Add Outlet</div></div>
-    <div class="admin-card-body"><form method="POST" action="{% url 'admin_add_distributor' %}">{% csrf_token %}
-      <div class="admin-form-group"><label>Outlet Name <span>*</span></label><input name="name" class="admin-input" required></div>
-      <div class="admin-form-group"><label>Region <span>*</span></label><select name="region" class="admin-input" required><option value="Central">Central</option><option value="Eastern">Eastern</option><option value="Northern">Northern</option><option value="Western">Western</option></select></div>
-      <div class="admin-form-group"><label>District <span>*</span></label><input name="district" class="admin-input" required></div>
-      <div class="admin-form-group"><label>Address</label><input name="address" class="admin-input"></div>
-      <div class="admin-form-group"><label>Phone</label><input name="phone" class="admin-input"></div>
-      <div class="admin-form-group"><label>Email</label><input name="email" type="email" class="admin-input"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div class="admin-form-group"><label>Latitude</label><input name="lat" type="number" step="any" value="0" class="admin-input"></div>
-        <div class="admin-form-group"><label>Longitude</label><input name="lng" type="number" step="any" value="0" class="admin-input"></div>
-      </div>
-      <button type="submit" class="btn-admin btn-primary-admin">{% icon "plus" %}Add Outlet</button>
-    </form></div>
+    <div class="admin-card-body">
+      <form method="POST" action="{% url 'admin_add_distributor' %}" id="addDistributorForm">{% csrf_token %}
+        <div class="admin-form-group"><label>Outlet Name <span>*</span></label><input name="name" class="admin-input" required></div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="admin-form-group">
+            <label>Country <span>*</span></label>
+            <select name="country" id="add_country" class="admin-input" onchange="onCountryChange('add')" required>
+              {% for val,label in countries %}<option value="{{ val }}" {% if val == 'Uganda' %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="admin-form-group">
+            <label>Region / State <span>*</span></label>
+            <input name="region" id="add_region" class="admin-input" list="add_regionList" placeholder="e.g. Central" required>
+            <datalist id="add_regionList"></datalist>
+          </div>
+        </div>
+
+        <div class="admin-form-group"><label>District / City <span>*</span></label><input name="district" id="add_district" class="admin-input" placeholder="e.g. Kampala" required></div>
+        <div class="admin-form-group"><label>Street Address / Landmark <span style="color:var(--text-3);font-weight:400">(optional)</span></label><input name="address" class="admin-input" placeholder="e.g. Container Village Nakivubo"></div>
+
+        <label style="margin-top:4px">Exact Location on Map <span>*</span></label>
+        <div class="loc-hint">{% icon "info-circle" style="color:var(--accent-blue)" %}Type a district/city above, hit "Locate", then click the map (or drag the pin) to place the outlet exactly.</div>
+        <div class="loc-row"><button type="button" onclick="geocodeAndFly('add')">{% icon "search" %}Locate District/City</button></div>
+        <div id="add_locStatus" class="loc-status">No location picked yet.</div>
+        <div class="loc-picker"><div id="addMap" class="loc-picker-map"></div></div>
+        <input type="hidden" name="lat" id="add_lat">
+        <input type="hidden" name="lng" id="add_lng">
+        <div id="add_submitWarn" class="loc-submit-warn">{% icon "exclamation-triangle" %}Please click the map to set an exact location before saving.</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="admin-form-group"><label>Phone</label><input name="phone" class="admin-input"></div>
+          <div class="admin-form-group"><label>Email</label><input name="email" type="email" class="admin-input"></div>
+        </div>
+        <button type="submit" class="btn-admin btn-primary-admin">{% icon "plus" %}Add Outlet</button>
+      </form>
+    </div>
   </div>
+
   <div class="admin-card" style="align-self:start">
     <div class="admin-card-header"><div class="admin-card-title">{% icon "list" %}All Outlets ({{ distributors|length }})</div></div>
-    <div class="tbl-wrap"><table class="data-table"><thead><tr><th>Name</th><th>Region</th><th>District</th><th>Phone</th><th>Actions</th></tr></thead>
+    <div class="tbl-wrap"><table class="data-table"><thead><tr><th>Name</th><th>Country</th><th>Region / District</th><th>Phone</th><th>Actions</th></tr></thead>
     <tbody>{% for d in distributors %}<tr>
       <td><strong>{{ d.name }}</strong>{% if d.address %}<br><small style="color:var(--text-3);font-size:.74rem">{{ d.address|truncatechars:40 }}</small>{% endif %}</td>
-      <td><span class="badge" style="background:var(--bg-alt);color:var(--accent-blue)">{{ d.region }}</span></td>
-      <td style="font-size:.86rem;color:var(--text-3)">{{ d.district }}</td>
+      <td><span class="badge" style="background:var(--bg-alt);color:var(--accent-blue)">{{ d.country }}</span></td>
+      <td style="font-size:.86rem;color:var(--text-3)">{{ d.region }}{% if d.district %} · {{ d.district }}{% endif %}</td>
       <td><a href="tel:{{ d.phone }}" style="color:var(--accent-blue);font-size:.86rem">{{ d.phone|default:"—" }}</a></td>
       <td><div style="display:flex;gap:5px">
         {% if d.lat and d.lng %}<a href="https://www.google.com/maps?q={{ d.lat }},{{ d.lng }}" target="_blank" class="btn-admin btn-secondary-admin" style="padding:5px 9px;font-size:.76rem">{% icon "map-marker-alt" %}</a>{% endif %}
+        <button type="button" class="btn-admin btn-secondary-admin" style="padding:5px 9px;font-size:.76rem" onclick="openEditModal({{ d.id }},'{{ d.name|escapejs }}','{{ d.country|escapejs }}','{{ d.region|escapejs }}','{{ d.district|escapejs }}','{{ d.address|escapejs }}','{{ d.phone|escapejs }}','{{ d.email|escapejs }}',{{ d.lat }},{{ d.lng }})">{% icon "edit" %}</button>
         <form method="POST" action="{% url 'admin_delete_distributor' d.id %}" style="display:inline" class="js-confirm-submit" data-confirm-title="Delete this outlet?" data-confirm-body="&quot;{{ d.name }}&quot; will be permanently removed.">{% csrf_token %}<button type="submit" class="btn-admin btn-danger-admin" style="padding:5px 9px;font-size:.76rem">{% icon "trash" %}</button></form>
       </div></td>
     </tr>{% empty %}<tr><td colspan="5" style="text-align:center;color:var(--text-3);padding:28px">No outlets yet.</td></tr>{% endfor %}</tbody>
     </table></div>
   </div>
-</div>{% endblock %}
+</div>
+
+<!-- EDIT DISTRIBUTOR MODAL -->
+<div id="editDistributorModal" style="display:none;position:fixed;inset:0;background:rgba(8,10,9,.55);z-index:4000;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--bg-card);border-radius:18px;padding:28px;max-width:640px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,.3);border:1.5px solid var(--border-color,var(--border))">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <h3 style="font-size:1.1rem;font-weight:800;color:var(--text-1);margin:0">{% icon "edit" style="color:var(--accent-blue);margin-right:8px" %}Edit Outlet</h3>
+      <button type="button" onclick="closeEditModal()" style="background:none;border:none;cursor:pointer;color:var(--text-3);font-size:1.1rem">{% icon "times" %}</button>
+    </div>
+    <form method="POST" id="editDistributorForm">{% csrf_token %}
+      <div class="admin-form-group"><label>Outlet Name <span>*</span></label><input name="name" id="edit_name" class="admin-input" required></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="admin-form-group">
+          <label>Country <span>*</span></label>
+          <select name="country" id="edit_country" class="admin-input" onchange="onCountryChange('edit')" required>
+            {% for val,label in countries %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="admin-form-group"><label>Region / State <span>*</span></label><input name="region" id="edit_region" class="admin-input" list="edit_regionList" required><datalist id="edit_regionList"></datalist></div>
+      </div>
+      <div class="admin-form-group"><label>District / City <span>*</span></label><input name="district" id="edit_district" class="admin-input" required></div>
+      <div class="admin-form-group"><label>Street Address / Landmark</label><input name="address" id="edit_address" class="admin-input"></div>
+
+      <label style="margin-top:4px">Exact Location on Map <span>*</span></label>
+      <div class="loc-row"><button type="button" onclick="geocodeAndFly('edit')">{% icon "search" %}Locate District/City</button></div>
+      <div id="edit_locStatus" class="loc-status">—</div>
+      <div class="loc-picker"><div id="editMap" class="loc-picker-map"></div></div>
+      <input type="hidden" name="lat" id="edit_lat">
+      <input type="hidden" name="lng" id="edit_lng">
+      <div id="edit_submitWarn" class="loc-submit-warn">{% icon "exclamation-triangle" %}Please click the map to set an exact location before saving.</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="admin-form-group"><label>Phone</label><input name="phone" id="edit_phone" class="admin-input"></div>
+        <div class="admin-form-group"><label>Email</label><input name="email" id="edit_email" type="email" class="admin-input"></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:6px">
+        <button type="submit" class="btn-admin btn-primary-admin">{% icon "save" %}Save Changes</button>
+        <button type="button" onclick="closeEditModal()" class="btn-admin btn-secondary-admin">{% icon "times" %}Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+const COUNTRY_INFO = {
+  'Uganda':      {center:[1.373,32.29],    zoom:7, iso:'ug'},
+  'Kenya':       {center:[0.0236,37.9062], zoom:6, iso:'ke'},
+  'Tanzania':    {center:[-6.369,34.888],  zoom:6, iso:'tz'},
+  'Rwanda':      {center:[-1.9403,29.8739],zoom:8, iso:'rw'},
+  'Burundi':     {center:[-3.3731,29.9189],zoom:8, iso:'bi'},
+  'South Sudan': {center:[6.877,31.307],   zoom:6, iso:'ss'},
+  'DR Congo':    {center:[-4.038,21.758],  zoom:5, iso:'cd'},
+  'Other':       {center:[1.373,32.29],    zoom:3, iso:''},
+};
+const REGION_SUGGESTIONS = { 'Uganda': ['Central','Eastern','Northern','Western'] };
+
+const pickers = {};
+const reverseTimers = {};
+
+function initPicker(prefix){
+  if (pickers[prefix]) return pickers[prefix];
+  const mapEl = document.getElementById(prefix + 'Map');
+  const map = L.map(mapEl, { scrollWheelZoom:true }).setView([1.373,32.29], 6);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'&copy; OpenStreetMap contributors', maxZoom:18 }).addTo(map);
+  map.on('click', e => placeMarker(prefix, e.latlng.lat, e.latlng.lng));
+  const st = { map, marker:null };
+  pickers[prefix] = st;
+  return st;
+}
+
+function placeMarker(prefix, lat, lng){
+  const st = initPicker(prefix);
+  if (st.marker) { st.marker.setLatLng([lat,lng]); }
+  else {
+    const pin = L.divIcon({ className:'', html:'<div style="width:26px;height:26px;border-radius:50% 50% 50% 0;background:#38BDF8;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3)"></div>', iconSize:[26,26], iconAnchor:[13,26] });
+    st.marker = L.marker([lat,lng], { draggable:true, icon:pin }).addTo(st.map);
+    st.marker.on('dragend', () => { const p = st.marker.getLatLng(); placeMarker(prefix, p.lat, p.lng); });
+  }
+  document.getElementById(prefix + '_lat').value = lat.toFixed(6);
+  document.getElementById(prefix + '_lng').value = lng.toFixed(6);
+  const warn = document.getElementById(prefix + '_submitWarn'); if (warn) warn.style.display = 'none';
+  reverseCheck(prefix, lat, lng);
+}
+
+function reverseCheck(prefix, lat, lng){
+  const statusEl = document.getElementById(prefix + '_locStatus');
+  if (!statusEl) return;
+  statusEl.textContent = 'Checking this location…';
+  statusEl.className = 'loc-status loc-checking';
+  clearTimeout(reverseTimers[prefix]);
+  reverseTimers[prefix] = setTimeout(async () => {
+    const countrySel = document.getElementById(prefix + '_country');
+    const wanted = COUNTRY_INFO[countrySel.value] || COUNTRY_INFO['Other'];
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1`);
+      const data = await res.json();
+      if (!data || data.error || !data.address) {
+        statusEl.textContent = '⚠ No land found here — this looks like open water. Please choose a different spot.';
+        statusEl.className = 'loc-status loc-warn';
+        return;
+      }
+      const gotIso = (data.address.country_code || '').toLowerCase();
+      if (wanted.iso && gotIso && gotIso !== wanted.iso) {
+        statusEl.textContent = `⚠ This pin looks like it's in ${data.address.country || 'a different country'}, not ${countrySel.value}. Please reposition it.`;
+        statusEl.className = 'loc-status loc-warn';
+      } else {
+        const display = data.display_name || '';
+        statusEl.textContent = '✓ ' + (display.length > 76 ? display.slice(0,76) + '…' : display);
+        statusEl.className = 'loc-status loc-ok';
+      }
+    } catch(e) {
+      statusEl.textContent = 'Could not verify this location right now — double-check the pin looks right before saving.';
+      statusEl.className = 'loc-status loc-checking';
+    }
+  }, 500);
+}
+
+async function geocodeAndFly(prefix){
+  const country = document.getElementById(prefix + '_country').value;
+  const region = document.getElementById(prefix + '_region').value.trim();
+  const district = document.getElementById(prefix + '_district').value.trim();
+  const q = [district, region, country].filter(Boolean).join(', ');
+  const st = initPicker(prefix);
+  if (!q) { st.map.setView((COUNTRY_INFO[country]||COUNTRY_INFO['Other']).center, (COUNTRY_INFO[country]||COUNTRY_INFO['Other']).zoom); return; }
+  const info = COUNTRY_INFO[country] || COUNTRY_INFO['Other'];
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1${info.iso ? '&countrycodes='+info.iso : ''}&q=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    if (data && data[0]) st.map.setView([parseFloat(data[0].lat), parseFloat(data[0].lon)], 12);
+    else st.map.setView(info.center, info.zoom);
+  } catch(e) { st.map.setView(info.center, info.zoom); }
+}
+
+function onCountryChange(prefix){
+  const country = document.getElementById(prefix + '_country').value;
+  const info = COUNTRY_INFO[country] || COUNTRY_INFO['Other'];
+  const st = initPicker(prefix);
+  st.map.setView(info.center, info.zoom);
+  const dl = document.getElementById(prefix + '_regionList');
+  if (dl) dl.innerHTML = (REGION_SUGGESTIONS[country] || []).map(r => `<option value="${r}">`).join('');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initPicker('add');
+  onCountryChange('add');
+});
+
+document.getElementById('addDistributorForm').addEventListener('submit', function(e){
+  const lat = document.getElementById('add_lat').value, lng = document.getElementById('add_lng').value;
+  if (!lat || !lng) { e.preventDefault(); document.getElementById('add_submitWarn').style.display='block'; document.getElementById('addMap').scrollIntoView({behavior:'smooth',block:'center'}); }
+});
+document.getElementById('editDistributorForm').addEventListener('submit', function(e){
+  const lat = document.getElementById('edit_lat').value, lng = document.getElementById('edit_lng').value;
+  if (!lat || !lng) { e.preventDefault(); document.getElementById('edit_submitWarn').style.display='block'; document.getElementById('editMap').scrollIntoView({behavior:'smooth',block:'center'}); }
+});
+
+function openEditModal(id,name,country,region,district,address,phone,email,lat,lng){
+  document.getElementById('editDistributorForm').action = '/admin-panel/distributors/' + id + '/edit/';
+  document.getElementById('edit_name').value = name;
+  document.getElementById('edit_country').value = country;
+  document.getElementById('edit_region').value = region;
+  document.getElementById('edit_district').value = district;
+  document.getElementById('edit_address').value = address;
+  document.getElementById('edit_phone').value = phone;
+  document.getElementById('edit_email').value = email;
+  document.getElementById('edit_lat').value = lat || '';
+  document.getElementById('edit_lng').value = lng || '';
+  document.getElementById('edit_submitWarn').style.display = 'none';
+  document.getElementById('editDistributorModal').style.display = 'flex';
+  onCountryChange('edit');
+  setTimeout(() => {
+    const st = initPicker('edit');
+    st.map.invalidateSize();
+    if (lat && lng && !(parseFloat(lat) === 0 && parseFloat(lng) === 0)) {
+      placeMarker('edit', parseFloat(lat), parseFloat(lng));
+      st.map.setView([parseFloat(lat), parseFloat(lng)], 13);
+    } else {
+      document.getElementById('edit_locStatus').textContent = 'No location picked yet.';
+      document.getElementById('edit_locStatus').className = 'loc-status';
+    }
+  }, 60);
+}
+function closeEditModal(){ document.getElementById('editDistributorModal').style.display = 'none'; }
+document.getElementById('editDistributorModal').addEventListener('click', function(e){ if (e.target === this) closeEditModal(); });
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeEditModal(); });
+</script>
+{% endblock %}

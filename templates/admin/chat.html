@@ -14,18 +14,37 @@
 <div class="chat-layout">
   <div class="chat-sidebar-panel">
     <div class="chat-online-summary"><span class="dot-pulse"></span><span id="activeAgentsCount">0</span> agent(s) active now</div>
+    <div class="chat-search-row"><input type="text" id="chatSearch" placeholder="Search agents…" oninput="filterContacts(this.value)"></div>
+
+    <div class="chat-contact chat-contact-broadcast" data-id="0" data-role="broadcast" data-name="All Agents" data-status="online">
+      <div class="chat-avatar chat-avatar-broadcast">{% icon "users" %}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;justify-content:space-between;gap:8px">
+          <div style="font-weight:800;font-size:.88rem;color:var(--text-primary)">📢 All Agents</div>
+          {% if last_broadcast %}<div class="chat-contact-time">{{ last_broadcast.created_at|date:"H:i" }}</div>{% endif %}
+        </div>
+        <div class="chat-contact-preview">{% if last_broadcast %}{{ last_broadcast.content|truncatechars:38 }}{% else %}Send one message to every active agent{% endif %}</div>
+      </div>
+    </div>
+
     <div style="padding:12px 16px 8px;font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted)">Field Agents ({{ agents|length }})</div>
     {% for a in agents %}
-    <div class="chat-contact" data-id="{{ a.id }}" data-role="agent" data-name="{{ a.name }}" data-status="{% if a.is_online %}online{% else %}offline{% endif %}">
+    <div class="chat-contact" data-id="{{ a.id }}" data-role="agent" data-name="{{ a.name }}" data-status="{% if a.is_online %}online{% else %}offline{% endif %}" data-search="{{ a.name|lower }} {{ a.region|lower }}">
       <div class="chat-avatar">{{ a.name|first|upper }}{% if a.is_online %}<span class="online-dot"></span>{% else %}<span class="offline-dot"></span>{% endif %}</div>
-      <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:.88rem;color:var(--text-primary)">{{ a.name }}</div><div style="font-size:.72rem;color:var(--text-muted)">{{ a.region|default:"—" }} · <span class="presence-label">{% if a.is_online %}online{% else %}offline{% endif %}</span></div></div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;justify-content:space-between;gap:8px">
+          <div style="font-weight:700;font-size:.88rem;color:var(--text-primary)">{{ a.name }}</div>
+          {% if a.last_message_time %}<div class="chat-contact-time">{{ a.last_message_time|date:"H:i" }}</div>{% endif %}
+        </div>
+        <div class="chat-contact-preview">{% if a.last_message_preview %}{% if a.last_message_mine %}<span class="you-prefix">You: </span>{% endif %}{{ a.last_message_preview }}{% else %}{{ a.region|default:"—" }} · <span class="presence-label">{% if a.is_online %}online{% else %}offline{% endif %}</span>{% endif %}</div>
+      </div>
       {% with sid=a.id|stringformat:"d" %}{% if unread_map|get_item:sid %}<span class="chat-unread-badge">{{ unread_map|get_item:sid }}</span>{% endif %}{% endwith %}
     </div>{% empty %}
     <div style="padding:28px;text-align:center;color:var(--text-muted);font-size:.86rem">{% icon "users" style="font-size:2rem;display:block;margin-bottom:10px;opacity:.4" %}No agents yet.<br><a href="{% url 'admin_agents' %}" style="color:var(--accent-blue)">Add agents →</a></div>
     {% endfor %}
   </div>
   <div class="chat-area-panel">
-    <div id="chatEmptyState" class="chat-empty">{% icon "comments" style="font-size:3.5rem;margin-bottom:16px;color:var(--border-color);opacity:.5" %}<h3 style="font-size:1rem;font-weight:700;color:var(--text-secondary);margin-bottom:8px">Select an agent to message</h3><p style="font-size:.86rem">Choose a field agent from the left panel.</p></div>
+    <div id="chatEmptyState" class="chat-empty">{% icon "comments" style="font-size:3.5rem;margin-bottom:16px;color:var(--border-color);opacity:.5" %}<h3 style="font-size:1rem;font-weight:700;color:var(--text-secondary);margin-bottom:8px">Select a chat to start messaging</h3><p style="font-size:.86rem">Choose a field agent, or message everyone at once via "All Agents".</p></div>
     <div id="chatMainArea" style="display:none;flex-direction:column;height:100%">
       <div class="chat-top-bar"><div class="chat-avatar" id="chatHeaderAvatar">?</div><div><div id="chatHeaderName" style="font-weight:800;font-size:.96rem;color:var(--text-primary)">Agent</div><div id="chatHeaderStatus" style="font-size:.74rem;color:var(--text-muted)">—</div></div></div>
       <div class="chat-msgs-wrap" id="chatMessages"></div>
@@ -34,4 +53,14 @@
   </div>
 </div>
 {% endblock %}
-{% block extra_js %}<script src="{% static 'js/chat.js' %}"></script>{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/chat.js' %}"></script>
+<script>
+function filterContacts(q){
+  q=q.toLowerCase().trim();
+  document.querySelectorAll('.chat-contact[data-search]').forEach(c=>{
+    c.style.display=(!q||c.dataset.search.includes(q))?'':'none';
+  });
+}
+</script>
+{% endblock %}

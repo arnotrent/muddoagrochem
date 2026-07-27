@@ -16,9 +16,16 @@
         <div class="admin-form-group"><label>Initial Stock Qty</label><input name="stock_qty" type="number" min="0" value="0" class="admin-input"></div>
         <div class="admin-form-group"><label>Reorder Level</label><input name="reorder_level" type="number" min="0" value="10" class="admin-input"></div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-        <div class="admin-form-group"><label>Product Image (upload)</label><input name="product_image" type="file" accept="image/*" class="admin-input"></div>
-        <div class="admin-form-group"><label>Or Image URL</label><input name="image_url" class="admin-input" placeholder="https://…"></div>
+      <div style="display:grid;grid-template-columns:88px 1fr 1fr;gap:14px;align-items:end">
+        <div class="admin-form-group" style="margin-bottom:0">
+          <label>Preview</label>
+          <div id="add_imgPreviewWrap" style="width:72px;height:72px;border-radius:10px;background:var(--bg-alt);border:1.5px dashed var(--border-color,var(--border));display:flex;align-items:center;justify-content:center;overflow:hidden">
+            <img id="add_imgPreview" style="display:none;width:100%;height:100%;object-fit:cover">
+            <span id="add_imgPreviewIcon" style="color:var(--text-muted);font-size:.7rem;text-align:center;padding:4px">No image</span>
+          </div>
+        </div>
+        <div class="admin-form-group"><label>Product Image (upload)</label><input name="product_image" id="add_imgInput" type="file" accept="image/*" class="admin-input" onchange="previewImage('add_imgInput','add_imgPreview','add_imgPreviewIcon')"></div>
+        <div class="admin-form-group"><label>Or Image URL</label><input name="image_url" id="add_imgUrl" class="admin-input" placeholder="https://…" oninput="previewImageUrl(this.value,'add_imgPreview','add_imgPreviewIcon')"></div>
       </div>
       <div class="admin-form-group"><label>Description</label><textarea name="description" class="admin-input" rows="3"></textarea></div>
       <button type="submit" class="btn-admin btn-primary-admin">{% icon "plus" %}Add Product</button>
@@ -41,7 +48,7 @@
       <td><div style="display:flex;gap:5px">
         <a href="{{ p.get_absolute_url }}" target="_blank" class="btn-admin btn-secondary-admin" style="padding:5px 9px;font-size:.76rem">{% icon "eye" %}</a>
         <a href="{% url 'product_spec_sheet' p.id %}" target="_blank" class="btn-admin btn-secondary-admin" style="padding:5px 9px;font-size:.76rem">{% icon "file-pdf" %}</a>
-        <button type="button" class="btn-admin btn-secondary-admin" style="padding:5px 9px;font-size:.76rem" onclick="openEditModal({{ p.id }},'{{ p.name|escapejs }}','{{ p.category }}','{{ p.active_ingredient|escapejs }}','{{ p.formulation|escapejs }}','{{ p.crops|escapejs }}','{{ p.dosage|escapejs }}','{{ p.packing|escapejs }}','{{ p.description|escapejs }}',{{ p.stock_qty }})">{% icon "edit" %}</button>
+        <button type="button" class="btn-admin btn-secondary-admin" style="padding:5px 9px;font-size:.76rem" onclick="openEditModal({{ p.id }},'{{ p.name|escapejs }}','{{ p.category }}','{{ p.active_ingredient|escapejs }}','{{ p.formulation|escapejs }}','{{ p.crops|escapejs }}','{{ p.dosage|escapejs }}','{{ p.packing|escapejs }}','{{ p.description|escapejs }}',{{ p.stock_qty }},'{{ p.display_image|escapejs }}')">{% icon "edit" %}</button>
         <form method="POST" action="{% url 'admin_delete_product' p.id %}" style="display:inline" class="js-confirm-submit" data-confirm-title="Delete this product?" data-confirm-body="&quot;{{ p.name }}&quot; will be permanently removed from the catalogue. This can't be undone.">{% csrf_token %}<button type="submit" class="btn-admin btn-danger-admin" style="padding:5px 9px;font-size:.76rem">{% icon "trash" %}</button></form>
       </div></td>
     </tr>{% empty %}<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:32px">No products yet. Run <code>python manage.py seed_data</code></td></tr>{% endfor %}</tbody>
@@ -68,9 +75,15 @@
         <div class="admin-form-group"><label>Stock Qty</label><input name="stock_qty" id="ep_stock" type="number" min="0" class="admin-input"></div>
       </div>
       <div class="admin-form-group"><label>Description</label><textarea name="description" id="ep_desc" class="admin-input" rows="3"></textarea></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-        <div class="admin-form-group"><label>Replace Image (upload)</label><input name="product_image" type="file" accept="image/*" class="admin-input"></div>
-        <div class="admin-form-group"><label>Or New Image URL</label><input name="image_url" id="ep_imgurl" class="admin-input" placeholder="Leave blank to keep current image"></div>
+      <div style="display:grid;grid-template-columns:88px 1fr 1fr;gap:14px;align-items:end">
+        <div class="admin-form-group" style="margin-bottom:0">
+          <label>Current</label>
+          <div style="width:72px;height:72px;border-radius:10px;background:var(--bg-alt);border:1.5px dashed var(--border-color,var(--border));overflow:hidden">
+            <img id="ep_preview" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">
+          </div>
+        </div>
+        <div class="admin-form-group"><label>Replace Image (upload)</label><input name="product_image" id="ep_imgInput" type="file" accept="image/*" class="admin-input" onchange="previewImage('ep_imgInput','ep_preview',null)"></div>
+        <div class="admin-form-group"><label>Or New Image URL</label><input name="image_url" id="ep_imgurl" class="admin-input" placeholder="Leave blank to keep current image" oninput="previewImageUrl(this.value,'ep_preview',null)"></div>
       </div>
       <div style="display:flex;gap:10px;margin-top:6px">
         <button type="submit" class="btn-admin btn-primary-admin">{% icon "save" %}Save Changes</button>
@@ -82,7 +95,27 @@
 
 {% endblock %}
 {% block extra_js %}<script>
-function openEditModal(id,name,cat,ai,form,crops,dosage,packing,desc,stock){
+function previewImage(inputId, imgId, iconId){
+  const input = document.getElementById(inputId);
+  const img = document.getElementById(imgId);
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    img.src = e.target.result;
+    img.style.display = 'block';
+    if (iconId) { const icon = document.getElementById(iconId); if (icon) icon.style.display = 'none'; }
+  };
+  reader.readAsDataURL(file);
+}
+function previewImageUrl(url, imgId, iconId){
+  if (!url) return;
+  const img = document.getElementById(imgId);
+  img.src = url;
+  img.style.display = 'block';
+  if (iconId) { const icon = document.getElementById(iconId); if (icon) icon.style.display = 'none'; }
+}
+function openEditModal(id,name,cat,ai,form,crops,dosage,packing,desc,stock,image){
   document.getElementById('editProductForm').action='/admin-panel/products/'+id+'/edit/';
   document.getElementById('ep_name').value=name;
   document.getElementById('ep_category').value=cat;
@@ -94,6 +127,9 @@ function openEditModal(id,name,cat,ai,form,crops,dosage,packing,desc,stock){
   document.getElementById('ep_desc').value=desc;
   document.getElementById('ep_stock').value=stock;
   document.getElementById('ep_imgurl').value='';
+  document.getElementById('ep_imgInput').value='';
+  const preview = document.getElementById('ep_preview');
+  if (image) { preview.src = image; preview.style.display = 'block'; } else { preview.style.display = 'none'; }
   document.getElementById('editProductModal').style.display='flex';
 }
 function closeEditModal(){document.getElementById('editProductModal').style.display='none'}
