@@ -72,18 +72,6 @@ PRODUCTS=[
   'dosage':'2.5 kg/ha in 500 L water. Apply 10–14 days before expected disease pressure.',
   'packing':'250g, 500g, 1kg',
   'description':'Spray this one ahead of the rains, not after — MD TOP LAXLYN is built for growers who plan for downy mildew and Alternaria blight before symptoms appear, giving potato and grape crops a head start on disease season.'},
- {'name':'TOPLAXLY 72WP','category':'fungicide','img':'/static/images/product_toplaxly.jpg','stock':80,'reorder':15,
-  'active_ingredient':'Cymoxanil 8% + Mancozeb 64%','formulation':'Wettable Powder (WP)',
-  'crops':'Potatoes, Tomatoes, Cucurbits, Tobacco',
-  'dosage':'2.0–2.5 kg/ha. Preventative: every 7–10 days.',
-  'packing':'100g, 250g, 500g, 1kg',
-  'description':'Late blight can wipe out a tomato or potato field within days — TOPLAXLY combines a fast-acting curative with a protective shield, so it stops an active outbreak and guards the untouched plants around it in the same spray.'},
- {'name':'UREA 46%N','category':'other','img':'/static/images/product_urea.jpg','stock':200,'reorder':40,
-  'active_ingredient':'Nitrogen (N) 46%','formulation':'Prilled Granular',
-  'crops':'Maize, Rice, Vegetables, Coffee, Sugarcane, Wheat, all field crops',
-  'dosage':'50–200 kg/ha. Top-dress in split applications. Do not apply to wet foliage.',
-  'packing':'1 kg, 5 kg, 25 kg, 50 kg bags',
-  'description':'When a field looks pale and growth has stalled, this is usually the fix — at 46% nitrogen it\'s the most concentrated top-dress fertilizer we stock, pushing visible leaf growth within days on maize, rice and sugarcane.'},
  {'name':'NPK 17:17:17','category':'other','img':'/static/images/product_npk.jpg','stock':180,'reorder':30,
   'active_ingredient':'N 17% + P2O5 17% + K2O 17%','formulation':'Compound Granular',
   'crops':'All crops — maize, vegetables, coffee, tea, sugarcane, horticulture',
@@ -105,7 +93,7 @@ PRODUCTS=[
 ]
 
 DISTRIBUTORS=[
- ('Muddo Agro HQ — Kampala','Central','Kampala','Container Village Nakivubo, Equity Bank Basement V013, P.O Box 25240','0772-507582 / 0702-507582','kulanju_w@yahoo.com',0.3136,32.5811),
+ ('Muddo Agro HQ — Kampala','Central','Kampala','Container Village Nakivubo, Equity Bank Basement V013, P.O Box 25240','0772-507582 / 0702-507582','muddoagro811@gmail.com',0.3136,32.5811),
  ('Nakasero Agro Supplies','Central','Kampala','Nakasero Market, Stall 47','+256 701 234567','',0.3180,32.5750),
  ('Wakiso District Outlet','Central','Wakiso','Namulanda Trading Centre, Entebbe Road','+256 754 223344','',0.0667,32.4833),
  ('Masaka Agro Store','Central','Masaka','Birch Avenue, Masaka Town','+256 789 990011','',-0.3396,31.7369),

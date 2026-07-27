@@ -46,7 +46,7 @@ def about(request):
         ('Are your products environmentally safe?','All registered products include environmental safety assessments. Follow label instructions: buffer zones, pre-harvest intervals, and proper PPE.'),
         ('Do you deliver upcountry?','Products available through our 11-outlet nationwide network. Use our Store Locator. For large bulk orders, direct delivery can be arranged.'),
         ('What is the minimum order?','No minimum for retail. For wholesale, minimums vary by product — contact our sales team.'),
-        ('How do I report a product problem?','Call +256 772 507582 or email kulanju_w@yahoo.com. Keep the product, note the batch number, and describe the issue. We investigate all complaints.'),
+        ('How do I report a product problem?','Call +256 772 507582 or email muddoagro811@gmail.com. Keep the product, note the batch number, and describe the issue. We investigate all complaints.'),
         ('What is your return policy?','Sealed, unused products in original packaging may be returned within 7 days with proof of purchase.'),
     ]
     categories_meta = [
@@ -82,7 +82,7 @@ def contact(request):
     contact_items = [
         ('map-marker-alt','Visit us in Kampala','Container Village Nakivubo, Equity Bank Basement V013, P.O Box 25240',''),
         ('phone','Call or WhatsApp us','<a href="tel:+256772507582">+256 772 507582</a> / <a href="tel:+256702507582">0702-507582</a><br><a href="tel:+256772971620">0772 971620</a> / <a href="tel:+256701971620">0701-971620</a>',''),
-        ('envelope','Email the team','<a href="mailto:kulanju_w@yahoo.com">kulanju_w@yahoo.com</a>',''),
+        ('envelope','Email the team','<a href="mailto:muddoagro811@gmail.com">muddoagro811@gmail.com</a>',''),
         ('clock','When we\'re open','Monday to Saturday, 8am until 6pm',''),
         ('facebook','Follow along on Facebook','<a href="https://facebook.com/p/MUDDO-AGRO-Chemicals-LTD-100063836929481/" target="_blank">MUDDO AGRO Chemicals LTD</a>',''),
     ]

@@ -102,5 +102,5 @@ GA_MEASUREMENT_ID = os.environ.get('GA_MEASUREMENT_ID', '')
 WHATSAPP_NUMBER   = os.environ.get('WHATSAPP_NUMBER', '256772507582')
 GOOGLE_MAPS_KEY   = os.environ.get('GOOGLE_MAPS_KEY', '')
 COMPANY_PHONE     = '+256 772 507582 / 0702-507582'
-COMPANY_EMAIL     = 'kulanju_w@yahoo.com'
+COMPANY_EMAIL     = 'muddoagro811@gmail.com'
 COMPANY_ADDRESS   = 'Container Village Nakivubo, Equity Bank Basement V013, Kampala'

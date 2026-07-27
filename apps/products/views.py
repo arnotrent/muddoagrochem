@@ -57,7 +57,7 @@ def spec_sheet(request,product_id):
     hdr=Table([[Paragraph(f'<b>{p.name}</b>',h1),Paragraph(f'<b>{p.get_category_display()}</b><br/><font size="9">TECHNICAL DATA SHEET</font>',ParagraphStyle('r',fontName='Helvetica-Bold',fontSize=13,textColor=cat_c,alignment=TA_RIGHT))]],colWidths=[120*mm,54*mm])
     hdr.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,-1),DARK),('PADDING',(0,0),(-1,-1),14),('VALIGN',(0,0),(-1,-1),'MIDDLE')]))
     story.append(hdr)
-    band=Table([[Paragraph('MUDDO AGRO CHEMICALS LTD · Container Village Nakivubo, Kampala · +256 772 507582 · kulanju_w@yahoo.com',sm)]],colWidths=[174*mm])
+    band=Table([[Paragraph('MUDDO AGRO CHEMICALS LTD · Container Village Nakivubo, Kampala · +256 772 507582 · muddoagro811@gmail.com',sm)]],colWidths=[174*mm])
     band.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,-1),LGRN),('PADDING',(0,0),(-1,-1),7),('LINEBELOW',(0,0),(-1,-1),1.5,MID)]))
     story+=[band,Spacer(1,8*mm)]
     if p.description: story+=[Paragraph('<b>PRODUCT DESCRIPTION</b>',h2),Spacer(1,3*mm),Paragraph(p.description,ParagraphStyle('bd2',fontName='Helvetica',fontSize=10,textColor=colors.HexColor('#111'),leading=15)),Spacer(1,7*mm)]
