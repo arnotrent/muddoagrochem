@@ -1,15 +1,15 @@
 {% extends "base.html" %}
-{% load icons %}
+{% load icons static %}
 {% block title %}Contact Us — Muddo Agro{% endblock %}
 {% block nav_contact %}active{% endblock %}
 {% block content %}
-<section class="page-hero" style="background-size:cover;background-position:center;background-color:#0F172A"><div class="container">
+<section class="page-hero" style="background-image:url('{% static 'images/hero_contact.jpg' %}')"><div class="container">
   <div class="breadcrumb"><a href="{% url 'index' %}">Home</a> / <span class="current">Contact</span></div>
   <h1 style="margin:12px 0">Let's Talk</h1>
   <p style="max-width:52ch">Got a pest problem, need a price, or just want to ask before you buy — we usually reply the same day.</p>
 </div></section>
 <section class="section"><div class="container">
-  <div style="display:grid;grid-template-columns:1fr 1.1fr;gap:48px">
+  <div class="contact-grid" style="display:grid;grid-template-columns:1fr 1.1fr;gap:48px">
     <div>
       <h2 style="font-size:1.4rem;margin-bottom:20px">A Few Ways to Reach Us</h2>
       {% for icon,label,content,href in contact_items %}
@@ -26,7 +26,7 @@
       <h3 style="font-size:1.3rem;margin-bottom:6px">Send Us a Message</h3>
       <p style="color:var(--text-3);font-size:.88rem;margin-bottom:22px">We read every message ourselves — no call centre. Expect a reply within a business day, and you'll get a reference number so you can check on it anytime.</p>
       <form method="POST">{% csrf_token %}
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="stack-mobile" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
           <div style="margin-bottom:16px"><label>Full Name *</label><input type="text" name="name" required></div>
           <div style="margin-bottom:16px"><label>Phone / WhatsApp</label><input type="tel" name="phone" placeholder="+256 7XX XXX XXX"></div>
         </div>

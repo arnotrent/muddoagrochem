@@ -25,13 +25,13 @@
 </div></section>
 
 <section class="section"><div class="container">
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center">
+  <div class="stack-mobile" style="display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center">
     <div>
       <div class="section-tag">{% icon "building" %}Who We Are</div>
       <h2 class="section-title" style="margin:6px 0 16px;text-align:left">MACL — Muddo Agro Chemicals LTD</h2>
       <p style="line-height:1.8;margin-bottom:14px">Based in Kampala's Container Village Nakivubo, Equity Bank Basement V013, MACL is a MAAIF-registered distributor of pesticides, herbicides, fungicides, fertilizers and spraying equipment serving all regions of Uganda.</p>
       <p style="line-height:1.8;margin-bottom:14px">We partner with manufacturers in India, China and Europe to bring authentic, proven agrochemical solutions at competitive prices — zero counterfeit products, ever.</p>
-      <p style="line-height:1.8">{% icon "phone" style="color:var(--accent-blue);margin-right:6px" %}<strong>Tel:</strong> 0772-507582 / 0702-507582<br>{% icon "envelope" style="color:var(--accent-blue);margin-right:6px" %}<strong>Email:</strong> <a href="mailto:kulanju_w@yahoo.com" style="color:var(--accent-blue)">kulanju_w@yahoo.com</a></p>
+      <p style="line-height:1.8">{% icon "phone" style="color:var(--accent-blue);margin-right:6px" %}<strong>Tel:</strong> 0772-507582 / 0702-507582<br>{% icon "envelope" style="color:var(--accent-blue);margin-right:6px" %}<strong>Email:</strong> <a href="mailto:muddoagro811@gmail.com" style="color:var(--accent-blue)">muddoagro811@gmail.com</a></p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:24px">
         {% for stat,label in stats_list %}
         <div style="text-align:center;padding:16px;background:var(--bg-alt);border-radius:14px">
@@ -41,7 +41,7 @@
       </div>
     </div>
     <div style="border-radius:20px;overflow:hidden;height:420px;box-shadow:var(--sh-lg)">
-      <img src="{% static 'images/hero_pesticides.jpg' %}" alt="MACL products in the field" style="width:100%;height:100%;object-fit:cover">
+      <img src="{% static 'images/about_side.jpg' %}" alt="Healthy tomato crop grown with MACL products" style="width:100%;height:100%;object-fit:cover">
     </div>
   </div>
 </div></section>
@@ -86,7 +86,7 @@
   </div>
 </div></section>
 <script>
-function toggleFaq(btn){const ans=btn.nextElementSibling,icon=btn.querySelector('i'),open=ans.style.maxHeight&&ans.style.maxHeight!=='0px';document.querySelectorAll('[onclick="toggleFaq(this)"]').forEach(b=>{b.nextElementSibling.style.maxHeight='0px';b.querySelector('i').style.transform=''});if(!open){ans.style.maxHeight=ans.scrollHeight+'px';icon.style.transform='rotate(180deg)'}}
+function toggleFaq(btn){const ans=btn.nextElementSibling,icon=btn.querySelector('.icon'),open=ans.style.maxHeight&&ans.style.maxHeight!=='0px';document.querySelectorAll('[onclick="toggleFaq(this)"]').forEach(b=>{b.nextElementSibling.style.maxHeight='0px';const i=b.querySelector('.icon');if(i)i.style.transform=''});if(!open){ans.style.maxHeight=ans.scrollHeight+'px';if(icon)icon.style.transform='rotate(180deg)'}}
 document.querySelector('[onclick="toggleFaq(this)"]')?.click();
 </script>
 {% endblock %}
