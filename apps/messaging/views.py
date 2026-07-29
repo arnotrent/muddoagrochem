@@ -30,7 +30,8 @@ def admin_chat(request):
 
     for a in agents:
         m = last_by_agent.get(a.id)
-        a.last_message_preview = (m.content[:46] + ('…' if len(m.content) > 46 else '')) if m else ''
+        preview = (m.content[:46] + ('…' if len(m.content) > 46 else '')) if (m and m.content) else ('📎 Attachment' if (m and m.attachment) else '')
+        a.last_message_preview = preview
         a.last_message_time = m.created_at if m else None
         a.last_message_mine = bool(m and m.sender_role == 'admin')
         a.unread_from = unread_map.get(str(a.id), 0)
@@ -56,10 +57,23 @@ def _bump(user):
         except: pass
 
 def _serialize(m):
+    reply = None
+    if m.reply_to_id:
+        r = m.reply_to
+        if r:
+            reply = {
+                'id': r.id,
+                'sender_role': r.sender_role,
+                'content': r.content[:80] if r.content else ('📎 Attachment' if r.attachment else ''),
+            }
     return {
         'id': m.id, 'sender_id': m.sender_id, 'sender_role': m.sender_role,
         'receiver_id': m.receiver_id, 'receiver_role': m.receiver_role,
         'content': m.content, 'read': m.read, 'is_broadcast': m.is_broadcast,
+        'reply_to': reply,
+        'attachment_url': m.attachment.url if m.attachment else None,
+        'attachment_name': m.attachment.name.rsplit('/', 1)[-1] if m.attachment else None,
+        'attachment_is_image': m.attachment_is_image,
         'created_at': m.created_at.isoformat(),
     }
 
@@ -90,21 +104,40 @@ def api_messages(request):
 @require_POST
 def api_send(request):
     _bump(request.user)
-    try: data=json.loads(request.body)
-    except: return JsonResponse({'error':'Invalid JSON'},status=400)
-    content=(data.get('content') or '').strip()
-    if not content: return JsonResponse({'error':'Missing fields'},status=400)
-    my_id,my_role=_id(request.user)
+    my_id, my_role = _id(request.user)
 
-    if data.get('broadcast'):
-        if not request.user.is_staff:
-            return JsonResponse({'error':'Only admin can broadcast'},status=403)
-        m = Message.objects.create(sender_id=my_id, sender_role='admin', receiver_id=0,
-                                    receiver_role='agent', content=content, is_broadcast=True)
+    is_multipart = bool(request.content_type) and request.content_type.startswith('multipart')
+    attachment = None
+    if is_multipart:
+        data = request.POST
+        attachment = request.FILES.get('attachment')
     else:
-        to_id=data.get('to_id'); to_role=data.get('to_role','agent')
-        if to_id is None: return JsonResponse({'error':'Missing fields'},status=400)
-        m=Message.objects.create(sender_id=my_id,sender_role=my_role,receiver_id=to_id,receiver_role=to_role,content=content)
+        try: data = json.loads(request.body)
+        except: return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    content = (data.get('content') or '').strip()
+    if not content and not attachment:
+        return JsonResponse({'error': 'A message needs text or an attachment'}, status=400)
+
+    reply_to = None
+    reply_to_id = data.get('reply_to')
+    if reply_to_id:
+        reply_to = Message.objects.filter(pk=reply_to_id).first()
+
+    is_broadcast = str(data.get('broadcast', '')).lower() in ('true', '1', 'on')
+
+    if is_broadcast:
+        if not request.user.is_staff:
+            return JsonResponse({'error': 'Only admin can broadcast'}, status=403)
+        m = Message.objects.create(sender_id=my_id, sender_role='admin', receiver_id=0,
+                                    receiver_role='agent', content=content, is_broadcast=True,
+                                    reply_to=reply_to, attachment=attachment)
+    else:
+        to_id = data.get('to_id'); to_role = data.get('to_role', 'agent')
+        if to_id is None: return JsonResponse({'error': 'Missing fields'}, status=400)
+        m = Message.objects.create(sender_id=my_id, sender_role=my_role, receiver_id=to_id,
+                                    receiver_role=to_role, content=content, reply_to=reply_to,
+                                    attachment=attachment)
 
     return JsonResponse({'message': _serialize(m)})
 

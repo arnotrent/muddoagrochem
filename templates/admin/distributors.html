@@ -15,17 +15,18 @@
 .loc-status.loc-checking{background:var(--bg-alt);color:var(--text-3)}
 .loc-hint{font-size:.76rem;color:var(--text-3);margin-bottom:10px;display:flex;align-items:center;gap:6px}
 .loc-submit-warn{display:none;font-size:.8rem;color:var(--accent-red);font-weight:600;margin-bottom:10px;padding:8px 12px;background:rgba(239,68,68,.08);border-radius:9px}
+.loc-lock-note{font-size:.72rem;color:var(--text-3);margin:-4px 0 10px;display:flex;align-items:center;gap:5px}
 </style>
 {% endblock %}
 {% block content %}
-<div style="display:grid;grid-template-columns:420px 1fr;gap:20px">
+<div class="rgrid-sidebar" style="display:grid;grid-template-columns:420px 1fr;gap:20px">
   <div class="admin-card" style="align-self:start">
     <div class="admin-card-header"><div class="admin-card-title">{% icon "plus-circle" %}Add Outlet</div></div>
     <div class="admin-card-body">
       <form method="POST" action="{% url 'admin_add_distributor' %}" id="addDistributorForm">{% csrf_token %}
         <div class="admin-form-group"><label>Outlet Name <span>*</span></label><input name="name" class="admin-input" required></div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="rgrid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
           <div class="admin-form-group">
             <label>Country <span>*</span></label>
             <select name="country" id="add_country" class="admin-input" onchange="onCountryChange('add')" required>
@@ -46,12 +47,13 @@
         <div class="loc-hint">{% icon "info-circle" style="color:var(--accent-blue)" %}Type a district/city above, hit "Locate", then click the map (or drag the pin) to place the outlet exactly.</div>
         <div class="loc-row"><button type="button" onclick="geocodeAndFly('add')">{% icon "search" %}Locate District/City</button></div>
         <div id="add_locStatus" class="loc-status">No location picked yet.</div>
+        <div class="loc-lock-note" id="add_lockNote">{% icon "lock" %}Map is locked to Uganda — pick a country above to change it.</div>
         <div class="loc-picker"><div id="addMap" class="loc-picker-map"></div></div>
         <input type="hidden" name="lat" id="add_lat">
         <input type="hidden" name="lng" id="add_lng">
         <div id="add_submitWarn" class="loc-submit-warn">{% icon "exclamation-triangle" %}Please click the map to set an exact location before saving.</div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="rgrid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
           <div class="admin-form-group"><label>Phone</label><input name="phone" class="admin-input"></div>
           <div class="admin-form-group"><label>Email</label><input name="email" type="email" class="admin-input"></div>
         </div>
@@ -87,7 +89,7 @@
     </div>
     <form method="POST" id="editDistributorForm">{% csrf_token %}
       <div class="admin-form-group"><label>Outlet Name <span>*</span></label><input name="name" id="edit_name" class="admin-input" required></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="rgrid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div class="admin-form-group">
           <label>Country <span>*</span></label>
           <select name="country" id="edit_country" class="admin-input" onchange="onCountryChange('edit')" required>
@@ -102,12 +104,13 @@
       <label style="margin-top:4px">Exact Location on Map <span>*</span></label>
       <div class="loc-row"><button type="button" onclick="geocodeAndFly('edit')">{% icon "search" %}Locate District/City</button></div>
       <div id="edit_locStatus" class="loc-status">—</div>
+      <div class="loc-lock-note" id="edit_lockNote">{% icon "lock" %}Map is locked to the selected country.</div>
       <div class="loc-picker"><div id="editMap" class="loc-picker-map"></div></div>
       <input type="hidden" name="lat" id="edit_lat">
       <input type="hidden" name="lng" id="edit_lng">
       <div id="edit_submitWarn" class="loc-submit-warn">{% icon "exclamation-triangle" %}Please click the map to set an exact location before saving.</div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="rgrid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div class="admin-form-group"><label>Phone</label><input name="phone" id="edit_phone" class="admin-input"></div>
         <div class="admin-form-group"><label>Email</label><input name="email" id="edit_email" type="email" class="admin-input"></div>
       </div>
@@ -132,6 +135,18 @@ const COUNTRY_INFO = {
   'DR Congo':    {center:[-4.038,21.758],  zoom:5, iso:'cd'},
   'Other':       {center:[1.373,32.29],    zoom:3, iso:''},
 };
+// Same rough boxes used server-side (apps/analytics/views.py COUNTRY_BOUNDS) —
+// kept in sync manually. Used to LOCK panning/zooming to the chosen country
+// so the admin physically cannot drop a pin outside it.
+const COUNTRY_BOUNDS_LL = {
+  'Uganda':      [[-1.50,29.50],[4.30,35.10]],
+  'Kenya':       [[-4.90,33.90],[5.20,41.90]],
+  'Tanzania':    [[-11.80,29.30],[-0.90,40.50]],
+  'Rwanda':      [[-2.95,28.80],[-1.00,30.95]],
+  'Burundi':     [[-4.50,28.90],[-2.30,30.90]],
+  'South Sudan': [[3.40,24.10],[12.30,35.95]],
+  'DR Congo':    [[-13.50,12.15],[5.40,31.30]],
+};
 const REGION_SUGGESTIONS = { 'Uganda': ['Central','Eastern','Northern','Western'] };
 
 const pickers = {};
@@ -140,7 +155,7 @@ const reverseTimers = {};
 function initPicker(prefix){
   if (pickers[prefix]) return pickers[prefix];
   const mapEl = document.getElementById(prefix + 'Map');
-  const map = L.map(mapEl, { scrollWheelZoom:true }).setView([1.373,32.29], 6);
+  const map = L.map(mapEl, { scrollWheelZoom:true, minZoom:3 }).setView([1.373,32.29], 6);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'&copy; OpenStreetMap contributors', maxZoom:18 }).addTo(map);
   map.on('click', e => placeMarker(prefix, e.latlng.lat, e.latlng.lng));
   const st = { map, marker:null };
@@ -201,13 +216,26 @@ async function geocodeAndFly(prefix){
   const district = document.getElementById(prefix + '_district').value.trim();
   const q = [district, region, country].filter(Boolean).join(', ');
   const st = initPicker(prefix);
-  if (!q) { st.map.setView((COUNTRY_INFO[country]||COUNTRY_INFO['Other']).center, (COUNTRY_INFO[country]||COUNTRY_INFO['Other']).zoom); return; }
   const info = COUNTRY_INFO[country] || COUNTRY_INFO['Other'];
+  if (!q) { st.map.setView(info.center, info.zoom); return; }
   try {
     const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1${info.iso ? '&countrycodes='+info.iso : ''}&q=${encodeURIComponent(q)}`);
     const data = await res.json();
-    if (data && data[0]) st.map.setView([parseFloat(data[0].lat), parseFloat(data[0].lon)], 12);
-    else st.map.setView(info.center, info.zoom);
+    if (data && data[0]) {
+      st.map.setView([parseFloat(data[0].lat), parseFloat(data[0].lon)], 13);
+      // Tighten the lock further to the district/city's own bounding box,
+      // so once a place is located the admin can only place the pin inside
+      // that specific town rather than the whole country.
+      if (data[0].boundingbox) {
+        const bb = data[0].boundingbox.map(parseFloat); // [south, north, west, east]
+        const districtBounds = L.latLngBounds([bb[0], bb[2]], [bb[1], bb[3]]).pad(0.4);
+        st.map.setMaxBounds(districtBounds);
+        const noteEl = document.getElementById(prefix + '_lockNote');
+        if (noteEl) noteEl.innerHTML = `🔒 Map is now locked to ${district || region} — change the district or country above to unlock it.`;
+      }
+    } else {
+      st.map.setView(info.center, info.zoom);
+    }
   } catch(e) { st.map.setView(info.center, info.zoom); }
 }
 
@@ -216,6 +244,18 @@ function onCountryChange(prefix){
   const info = COUNTRY_INFO[country] || COUNTRY_INFO['Other'];
   const st = initPicker(prefix);
   st.map.setView(info.center, info.zoom);
+  const bounds = COUNTRY_BOUNDS_LL[country];
+  if (bounds) {
+    st.map.setMaxBounds(L.latLngBounds(bounds).pad(0.15));
+    st.map.setMinZoom(Math.max(info.zoom - 2, 3));
+  } else {
+    st.map.setMaxBounds(null);
+    st.map.setMinZoom(2);
+  }
+  const noteEl = document.getElementById(prefix + '_lockNote');
+  if (noteEl) noteEl.innerHTML = bounds
+    ? `🔒 Map is locked to ${country} — pick a different country above to change it.`
+    : `Map is unrestricted for "Other" — double-check the pin carefully.`;
   const dl = document.getElementById(prefix + '_regionList');
   if (dl) dl.innerHTML = (REGION_SUGGESTIONS[country] || []).map(r => `<option value="${r}">`).join('');
 }

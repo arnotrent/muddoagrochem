@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="{% static 'css/theme_vars.css' %}">
 <link rel="stylesheet" href="{% static 'css/style.css' %}">
 <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+<link rel="stylesheet" href="{% static 'css/responsive.css' %}">
 <script>(function(){var t=localStorage.getItem('muddo-theme')||'light';document.documentElement.setAttribute('data-theme',t)})();</script>
 </head>
 <body data-user-id="{{ agent.id }}" data-user-role="agent" data-user-initial="{{ agent.name|first|upper }}">
@@ -31,20 +32,26 @@
   </aside>
   <div style="flex:1;min-width:0;display:flex;flex-direction:column">
     <div class="admin-topbar">
-      <div class="admin-topbar-title">Welcome back, <span style="color:var(--accent-blue)">{{ agent.name }}</span> 👋</div>
+      <div class="admin-topbar-title">
+        <button type="button" class="sidebar-toggle-btn" data-sidebar-toggle aria-label="Open menu">{% icon "list" %}</button>
+        Welcome back, <span style="color:var(--accent-blue)">{{ agent.name }}</span> 👋
+      </div>
       <div style="display:flex;align-items:center;gap:12px">
-        <span style="font-size:.8rem;color:var(--text-3)">{{ agent.region|default:"" }}{% if agent.district %} · {{ agent.district }}{% endif %}</span>
+        <span style="font-size:.8rem;color:var(--text-3)" class="hide-on-xs">{{ agent.region|default:"" }}{% if agent.district %} · {{ agent.district }}{% endif %}</span>
         <div style="width:34px;height:34px;border-radius:50%;background:var(--accent-blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.88rem">{{ agent.name|first|upper }}</div>
         <button class="theme-btn theme-toggle-nav"><span class="theme-icon-slot theme-icon-moon">{% icon "moon" %}</span><span class="theme-icon-slot theme-icon-sun">{% icon "sun" %}</span></button>
       </div>
     </div>
     <div class="admin-content">
       {% if messages %}{% for m in messages %}<div class="admin-flash {% if 'error' in m.tags %}flash-error{% else %}flash-success{% endif %}">{% if 'error' in m.tags %}{% icon "exclamation-circle" %}{% else %}{% icon "check-circle" %}{% endif %}{{ m }}</div>{% endfor %}{% endif %}
+      <div style="border-radius:var(--r-card);overflow:hidden;margin-bottom:22px;background:var(--bg-deep);display:flex;align-items:center;justify-content:center;height:170px">
+        <img src="{% static 'images/banner_agent.png' %}" alt="MACL Agent" style="height:100%;width:auto;max-width:100%;object-fit:contain">
+      </div>
       <div class="kpi-grid">
         {% for icon,key,val,lbl in kpis %}
         <div class="kpi-card"><div class="kpi-icon">{% icon icon %}</div><div class="kpi-value">{{ val }}</div><div class="kpi-label">{{ lbl }}</div></div>{% endfor %}
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div class="rgrid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
         <div class="admin-card">
           <div class="admin-card-header"><div class="admin-card-title">{% icon "plus-circle" %}New Supply Request</div></div>
           <div class="admin-card-body">

@@ -5,7 +5,7 @@
   <div class="admin-card-header"><div class="admin-card-title">{% icon "plus-circle" %}Add New Product</div></div>
   <div class="admin-card-body">
     <form method="POST" action="{% url 'admin_add_product' %}" enctype="multipart/form-data">{% csrf_token %}
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+      <div class="rgrid-3" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
         <div class="admin-form-group"><label>Product Name <span>*</span></label><input name="name" class="admin-input" required></div>
         <div class="admin-form-group"><label>Category <span>*</span></label><select name="category" class="admin-input" required><option value="pesticide">Pesticide</option><option value="herbicide">Herbicide</option><option value="fungicide">Fungicide</option><option value="other">Other / Agri Input</option></select></div>
         <div class="admin-form-group"><label>Active Ingredient</label><input name="active_ingredient" class="admin-input" placeholder="e.g. Glyphosate 480 g/l"></div>
@@ -16,7 +16,7 @@
         <div class="admin-form-group"><label>Initial Stock Qty</label><input name="stock_qty" type="number" min="0" value="0" class="admin-input"></div>
         <div class="admin-form-group"><label>Reorder Level</label><input name="reorder_level" type="number" min="0" value="10" class="admin-input"></div>
       </div>
-      <div style="display:grid;grid-template-columns:88px 1fr 1fr;gap:14px;align-items:end">
+      <div class="rgrid-3" style="display:grid;grid-template-columns:88px 1fr 1fr;gap:14px;align-items:end">
         <div class="admin-form-group" style="margin-bottom:0">
           <label>Preview</label>
           <div id="add_imgPreviewWrap" style="width:72px;height:72px;border-radius:10px;background:var(--bg-alt);border:1.5px dashed var(--border-color,var(--border));display:flex;align-items:center;justify-content:center;overflow:hidden">
@@ -64,7 +64,7 @@
       <button type="button" onclick="closeEditModal()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1.1rem">{% icon "times" %}</button>
     </div>
     <form method="POST" id="editProductForm" enctype="multipart/form-data">{% csrf_token %}
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="rgrid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
         <div class="admin-form-group"><label>Product Name <span>*</span></label><input name="name" id="ep_name" class="admin-input" required></div>
         <div class="admin-form-group"><label>Category <span>*</span></label><select name="category" id="ep_category" class="admin-input" required><option value="pesticide">Pesticide</option><option value="herbicide">Herbicide</option><option value="fungicide">Fungicide</option><option value="other">Other / Agri Input</option></select></div>
         <div class="admin-form-group"><label>Active Ingredient</label><input name="active_ingredient" id="ep_ai" class="admin-input"></div>
@@ -75,7 +75,7 @@
         <div class="admin-form-group"><label>Stock Qty</label><input name="stock_qty" id="ep_stock" type="number" min="0" class="admin-input"></div>
       </div>
       <div class="admin-form-group"><label>Description</label><textarea name="description" id="ep_desc" class="admin-input" rows="3"></textarea></div>
-      <div style="display:grid;grid-template-columns:88px 1fr 1fr;gap:14px;align-items:end">
+      <div class="rgrid-3" style="display:grid;grid-template-columns:88px 1fr 1fr;gap:14px;align-items:end">
         <div class="admin-form-group" style="margin-bottom:0">
           <label>Current</label>
           <div style="width:72px;height:72px;border-radius:10px;background:var(--bg-alt);border:1.5px dashed var(--border-color,var(--border));overflow:hidden">

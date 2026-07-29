@@ -27,4 +27,27 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
   window.toggleTheme = toggle;
   window.getCurrentTheme = getStored;
+
+  // ── MOBILE SIDEBAR TOGGLE (admin panel + agent portal) ───────────
+  // Both use the shared `.admin-sidebar` component, which is hidden by
+  // default under ~767px (see responsive.css). Any element carrying
+  // [data-sidebar-toggle] flips it open as a slide-over panel.
+  function initSidebarToggle() {
+    document.querySelectorAll('[data-sidebar-toggle]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.preventDefault();
+        document.querySelector('.admin-sidebar')?.classList.toggle('mobile-open');
+      });
+    });
+    document.addEventListener('click', e => {
+      const sb = document.querySelector('.admin-sidebar.mobile-open');
+      if (sb && !sb.contains(e.target) && !e.target.closest('[data-sidebar-toggle]')) {
+        sb.classList.remove('mobile-open');
+      }
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') document.querySelector('.admin-sidebar.mobile-open')?.classList.remove('mobile-open');
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initSidebarToggle); else initSidebarToggle();
 })();

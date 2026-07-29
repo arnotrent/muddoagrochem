@@ -1,13 +1,15 @@
 /* ═══════════════════════════════════════════════════════════════
-   MUDDO AGRO — CHAT SYSTEM  v3
-   Fixes vs v2:
-   - Every fetch() now hits the EXACT url from urls.py (trailing
-     slash included). v2 called e.g. /api/chat/send (no slash) while
-     urls.py defines api/chat/send/ — in production (DEBUG=False)
-     Django's APPEND_SLASH redirect turns that POST into a GET on
-     redirect, silently dropping the message body + CSRF token. This
-     was the actual reason sends/mark-read looked broken.
-   - Added broadcast support ("All Agents" thread, admin-only).
+   MUDDO AGRO — CHAT SYSTEM  v4
+   Fixes vs v3:
+   - DUPLICATE MESSAGE BUG: sendMessage() appended the just-sent message
+     locally but never updated lastMsgId, so the very next 3s poll
+     re-fetched (id__gt=lastMsgId) and appended the same message again.
+     Now lastMsgId is bumped immediately after the optimistic append.
+   New in v4:
+   - Reply-to-message (swipe/hover a bubble, quote it, send).
+   - Image/file attachments (paperclip button, image preview, file chip).
+   - Read ticks: gray single check = sent, blue double check = seen.
+   - "Last seen HH:MM" text when a contact is offline.
    ═══════════════════════════════════════════════════════════════ */
 
 function getCsrfToken() {
@@ -16,6 +18,9 @@ function getCsrfToken() {
   const match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
   return match ? decodeURIComponent(match[1]) : '';
 }
+
+const TICK_SENT = '<svg class="icon" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.75;vertical-align:-1px"><polyline points="20 6 9 17 4 12"/></svg>';
+const TICK_SEEN = '<svg class="icon msg-tick-seen" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><polyline points="1 13 5 17 11 9"/><polyline points="7 13 11 17 21 5"/></svg>';
 
 class MuddoChat {
   constructor() {
@@ -26,6 +31,10 @@ class MuddoChat {
     this.container    = document.getElementById('chatMessages');
     this.inputBox     = document.getElementById('chatInput');
     this.sendBtn      = document.getElementById('chatSendBtn');
+    this.attachBtn    = document.getElementById('chatAttachBtn');
+    this.attachInput  = document.getElementById('chatAttachInput');
+    this.attachPreview= document.getElementById('chatAttachPreview');
+    this.replyBar     = document.getElementById('chatReplyBar');
     this.headerName   = document.getElementById('chatHeaderName')   || document.getElementById('chatHdrName');
     this.headerStatus = document.getElementById('chatHeaderStatus') || document.getElementById('chatHdrStatus');
     this.headerAvatar = document.getElementById('chatHeaderAvatar') || document.getElementById('chatHdrAvatar');
@@ -38,6 +47,9 @@ class MuddoChat {
     this.lastDateKey   = null;
     this.lastSenderKey = null;
     this.lastRow       = null;
+    this.pendingFile    = null;
+    this.replyingTo     = null; // { id, preview, sender_role }
+    this.msgById         = {};
 
     if (this.sendBtn)  this.sendBtn.addEventListener('click', () => this.sendMessage());
     if (this.inputBox) {
@@ -49,10 +61,25 @@ class MuddoChat {
         this.inputBox.style.height = Math.min(this.inputBox.scrollHeight, 120) + 'px';
       });
     }
+    if (this.attachBtn && this.attachInput) {
+      this.attachBtn.addEventListener('click', () => this.attachInput.click());
+      this.attachInput.addEventListener('change', () => {
+        const f = this.attachInput.files && this.attachInput.files[0];
+        if (f) this.setPendingFile(f);
+      });
+    }
 
     document.querySelectorAll('.chat-contact[data-id]').forEach(el => {
       el.addEventListener('click', () => this.selectContact(el));
     });
+
+    // Delegate reply-button clicks (buttons are created dynamically per bubble)
+    if (this.container) {
+      this.container.addEventListener('click', e => {
+        const btn = e.target.closest('.msg-reply-btn');
+        if (btn) this.startReply(btn.dataset.id, btn.dataset.preview, btn.dataset.senderRole);
+      });
+    }
 
     const hash = window.location.hash.replace('#chat-', '');
     if (hash) {
@@ -80,9 +107,15 @@ class MuddoChat {
 
     if (this.headerName)   this.headerName.textContent = this.currentWith.name;
     if (this.headerStatus) {
-      this.headerStatus.innerHTML = isBroadcast
-        ? 'Sends to every active field agent at once'
-        : `<span class="status-dot ${el.dataset.status || 'offline'}"></span> ${el.dataset.status === 'online' ? 'Online now' : 'Offline'}`;
+      if (isBroadcast) {
+        this.headerStatus.innerHTML = 'Sends to every active field agent at once';
+      } else {
+        const online = el.dataset.status === 'online';
+        const lastSeen = el.dataset.lastSeen || '';
+        this.headerStatus.innerHTML = online
+          ? `<span class="status-dot online"></span> Online now`
+          : `<span class="status-dot offline"></span> ${lastSeen ? 'Last seen ' + lastSeen : 'Offline'}`;
+      }
     }
     if (this.headerAvatar) this.headerAvatar.textContent = isBroadcast ? '📢' : this.currentWith.name.charAt(0).toUpperCase();
     if (this.chatMain)     this.chatMain.style.display  = 'flex';
@@ -92,6 +125,8 @@ class MuddoChat {
     this.lastDateKey = null;
     this.lastSenderKey = null;
     this.lastRow = null;
+    this.msgById = {};
+    this.cancelReply();
     this.container.innerHTML = '';
     this.loadMessages(true);
 
@@ -142,7 +177,26 @@ class MuddoChat {
     return dateObj.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
+  renderAttachment(m) {
+    if (!m.attachment_url) return '';
+    if (m.attachment_is_image) {
+      return `<a href="${m.attachment_url}" target="_blank" rel="noopener"><img class="msg-attachment-img" src="${m.attachment_url}" alt="attachment"></a>`;
+    }
+    const name = m.attachment_name || 'file';
+    return `<a class="msg-attachment-file" href="${m.attachment_url}" target="_blank" rel="noopener" download>
+      <svg class="icon" width="1.1em" height="1.1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span>${this.escapeHtml(name)}</span>
+    </a>`;
+  }
+
+  renderReplyQuote(m) {
+    if (!m.reply_to) return '';
+    const who = m.reply_to.sender_role === this.myRole ? 'You' : (this.currentWith?.role === 'broadcast' ? 'Admin' : (m.reply_to.sender_role === 'admin' ? 'Admin' : this.currentWith?.name));
+    return `<div class="msg-reply-quote"><strong>${this.escapeHtml(who)}</strong>${this.escapeHtml(m.reply_to.content || '')}</div>`;
+  }
+
   appendMessage(m) {
+    this.msgById[m.id] = m;
     const isSent = (m.sender_role === this.myRole && m.sender_id === this.myId);
     const initial = isSent ? this.myInitial : (m.is_broadcast ? '📢' : (this.currentWith?.name?.charAt(0) || '?'));
     const msgDate = new Date(m.created_at);
@@ -169,11 +223,14 @@ class MuddoChat {
 
     const wrapper = document.createElement('div');
     wrapper.className = `msg-row ${isSent ? 'sent' : 'received'}`;
+    wrapper.dataset.id = m.id;
     if (grouped) wrapper.style.marginTop = '2px';
     const broadcastTag = (m.is_broadcast && !isSent) ? '<span class="msg-broadcast-tag">Broadcast</span><br>' : '';
+    const previewText = (m.content || (m.attachment_name ? '📎 ' + m.attachment_name : '')).substring(0, 60);
     wrapper.innerHTML = `
       <div class="msg-avatar-slot"><div class="msg-avatar ${isSent ? 'sent-avatar' : ''}">${initial}</div></div>
-      <div class="msg-bubble">${broadcastTag}${this.escapeHtml(m.content)}<span class="msg-time">${time}${isSent ? ' <svg class="icon" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.8;vertical-align:-1px"><polyline points="1 13 5 17 11 9"/><polyline points="7 13 11 17 21 5"/></svg>' : ''}</span></div>
+      <div class="msg-hover-actions"><button class="msg-reply-btn" data-id="${m.id}" data-preview="${this.escapeAttr(previewText)}" data-sender-role="${m.sender_role}" title="Reply">${this.replyIconSvg()}</button></div>
+      <div class="msg-bubble">${broadcastTag}${this.renderReplyQuote(m)}${this.renderAttachment(m)}${m.content ? this.escapeHtml(m.content) : ''}<span class="msg-time">${time}${isSent ? ' ' + (m.read ? TICK_SEEN : TICK_SENT) : ''}</span></div>
     `;
     this.container.appendChild(wrapper);
 
@@ -181,40 +238,102 @@ class MuddoChat {
     this.lastRow = wrapper;
   }
 
+  replyIconSvg() {
+    return '<svg class="icon" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>';
+  }
+
+  startReply(id, preview, senderRole) {
+    this.replyingTo = { id, preview, senderRole };
+    if (!this.replyBar) return;
+    const who = (senderRole === this.myRole) ? 'You' : (this.currentWith?.name || 'them');
+    this.replyBar.innerHTML = `<div class="reply-bar-inner"><div><strong>Replying to ${this.escapeHtml(who)}</strong><div class="reply-bar-preview">${this.escapeHtml(preview)}</div></div><button type="button" id="chatReplyCancel">${'<svg class="icon" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'}</button></div>`;
+    this.replyBar.style.display = 'block';
+    document.getElementById('chatReplyCancel')?.addEventListener('click', () => this.cancelReply());
+    this.inputBox?.focus();
+  }
+
+  cancelReply() {
+    this.replyingTo = null;
+    if (this.replyBar) { this.replyBar.style.display = 'none'; this.replyBar.innerHTML = ''; }
+  }
+
+  setPendingFile(file) {
+    this.pendingFile = file;
+    if (!this.attachPreview) return;
+    const isImage = file.type.startsWith('image/');
+    this.attachPreview.style.display = 'flex';
+    if (isImage) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        this.attachPreview.innerHTML = `<img src="${e.target.result}" class="attach-preview-thumb"><span class="attach-preview-name">${this.escapeHtml(file.name)}</span><button type="button" id="chatAttachCancel">${'<svg class="icon" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'}</button>`;
+        document.getElementById('chatAttachCancel')?.addEventListener('click', () => this.clearPendingFile());
+      };
+      reader.readAsDataURL(file);
+    } else {
+      this.attachPreview.innerHTML = `<span class="attach-preview-name">📎 ${this.escapeHtml(file.name)}</span><button type="button" id="chatAttachCancel">${'<svg class="icon" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'}</button>`;
+      document.getElementById('chatAttachCancel')?.addEventListener('click', () => this.clearPendingFile());
+    }
+  }
+
+  clearPendingFile() {
+    this.pendingFile = null;
+    if (this.attachInput) this.attachInput.value = '';
+    if (this.attachPreview) { this.attachPreview.style.display = 'none'; this.attachPreview.innerHTML = ''; }
+  }
+
   async sendMessage() {
-    const content = this.inputBox?.value.trim();
-    if (!content || !this.currentWith) return;
+    const content = this.inputBox?.value.trim() || '';
+    if (!content && !this.pendingFile) return;
+    if (!this.currentWith) return;
+    const file = this.pendingFile;
+    const replyId = this.replyingTo?.id || null;
     this.inputBox.value = '';
     this.inputBox.style.height = 'auto';
+    this.clearPendingFile();
+    this.cancelReply();
     const isBroadcast = this.currentWith.role === 'broadcast';
 
-    const body = isBroadcast
-      ? { broadcast: true, content }
-      : { to_id: this.currentWith.id, to_role: this.currentWith.role, content };
-
     try {
-      const res = await fetch('/api/chat/send/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrfToken },
-        body: JSON.stringify(body)
-      });
+      let res;
+      if (file) {
+        const fd = new FormData();
+        fd.append('content', content);
+        if (isBroadcast) fd.append('broadcast', 'true');
+        else { fd.append('to_id', this.currentWith.id); fd.append('to_role', this.currentWith.role); }
+        if (replyId) fd.append('reply_to', replyId);
+        fd.append('attachment', file);
+        res = await fetch('/api/chat/send/', { method: 'POST', headers: { 'X-CSRFToken': this.csrfToken }, body: fd });
+      } else {
+        const body = isBroadcast
+          ? { broadcast: true, content, reply_to: replyId }
+          : { to_id: this.currentWith.id, to_role: this.currentWith.role, content, reply_to: replyId };
+        res = await fetch('/api/chat/send/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrfToken },
+          body: JSON.stringify(body)
+        });
+      }
       if (!res.ok) {
         console.error('Send failed:', res.status);
-        this.inputBox.value = content;
         window.toast?.error?.('Message failed to send — please try again.');
         return;
       }
       const data = await res.json();
       if (data.message) {
         this.appendMessage(data.message);
+        // FIX for the duplicate-message bug: the next poll filters on
+        // id__gt=lastMsgId, so it must be bumped here — otherwise the
+        // message we just optimistically rendered gets fetched again.
+        this.lastMsgId = Math.max(this.lastMsgId, data.message.id);
         this.scrollBottom();
         const contactEl = document.querySelector(`.chat-contact[data-id="${this.currentWith.id}"][data-role="${this.currentWith.role}"]`);
         const preview = contactEl?.querySelector('.chat-contact-preview');
-        if (preview) preview.innerHTML = '<span class="you-prefix">You: </span>' + this.escapeHtml(content.substring(0, 40));
+        const previewText = content || (data.message.attachment_name ? '📎 ' + data.message.attachment_name : '');
+        if (preview) preview.innerHTML = '<span class="you-prefix">You: </span>' + this.escapeHtml(previewText.substring(0, 40));
         const timeEl = contactEl?.querySelector('.chat-contact-time');
         if (timeEl) timeEl.textContent = new Date(data.message.created_at).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
       }
-    } catch(e) { this.inputBox.value = content; }
+    } catch(e) { console.error(e); }
   }
 
   scrollBottom() {
@@ -259,7 +378,10 @@ class MuddoChat {
         const dot = contact.querySelector('.online-dot, .offline-dot');
         if (dot) { dot.className = isOnline ? 'online-dot' : 'offline-dot'; }
         if (this.currentWith && this.currentWith.role === 'agent' && String(this.currentWith.id) === id && this.headerStatus) {
-          this.headerStatus.innerHTML = `<span class="status-dot ${isOnline ? 'online' : 'offline'}"></span> ${isOnline ? 'Online now' : 'Offline'}`;
+          const lastSeen = contact.dataset.lastSeen || '';
+          this.headerStatus.innerHTML = isOnline
+            ? `<span class="status-dot online"></span> Online now`
+            : `<span class="status-dot offline"></span> ${lastSeen ? 'Last seen ' + lastSeen : 'Offline'}`;
         }
       });
       const counter = document.getElementById('activeAgentsCount');
@@ -268,7 +390,10 @@ class MuddoChat {
   }
 
   escapeHtml(str) {
-    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+    return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  }
+  escapeAttr(str) {
+    return (str || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 }
 

@@ -23,13 +23,13 @@
           <div style="font-weight:800;font-size:.88rem;color:var(--text-primary)">📢 All Agents</div>
           {% if last_broadcast %}<div class="chat-contact-time">{{ last_broadcast.created_at|date:"H:i" }}</div>{% endif %}
         </div>
-        <div class="chat-contact-preview">{% if last_broadcast %}{{ last_broadcast.content|truncatechars:38 }}{% else %}Send one message to every active agent{% endif %}</div>
+        <div class="chat-contact-preview">{% if last_broadcast %}{{ last_broadcast.content|default:"📎 Attachment"|truncatechars:38 }}{% else %}Send one message to every active agent{% endif %}</div>
       </div>
     </div>
 
     <div style="padding:12px 16px 8px;font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted)">Field Agents ({{ agents|length }})</div>
     {% for a in agents %}
-    <div class="chat-contact" data-id="{{ a.id }}" data-role="agent" data-name="{{ a.name }}" data-status="{% if a.is_online %}online{% else %}offline{% endif %}" data-search="{{ a.name|lower }} {{ a.region|lower }}">
+    <div class="chat-contact" data-id="{{ a.id }}" data-role="agent" data-name="{{ a.name }}" data-status="{% if a.is_online %}online{% else %}offline{% endif %}" data-last-seen="{% if a.last_seen %}{{ a.last_seen|date:'d M, H:i' }}{% endif %}" data-search="{{ a.name|lower }} {{ a.region|lower }}">
       <div class="chat-avatar">{{ a.name|first|upper }}{% if a.is_online %}<span class="online-dot"></span>{% else %}<span class="offline-dot"></span>{% endif %}</div>
       <div style="flex:1;min-width:0">
         <div style="display:flex;justify-content:space-between;gap:8px">
@@ -48,7 +48,14 @@
     <div id="chatMainArea" style="display:none;flex-direction:column;height:100%">
       <div class="chat-top-bar"><div class="chat-avatar" id="chatHeaderAvatar">?</div><div><div id="chatHeaderName" style="font-weight:800;font-size:.96rem;color:var(--text-primary)">Agent</div><div id="chatHeaderStatus" style="font-size:.74rem;color:var(--text-muted)">—</div></div></div>
       <div class="chat-msgs-wrap" id="chatMessages"></div>
-      <div class="chat-input-row"><textarea id="chatInput" placeholder="Type a message…"></textarea><button id="chatSendBtn" class="btn-admin btn-primary-admin">{% icon "paper-plane" %}</button></div>
+      <div id="chatReplyBar" class="reply-bar"></div>
+      <div id="chatAttachPreview" class="chat-attach-preview"></div>
+      <div class="chat-input-row">
+        <input type="file" id="chatAttachInput" style="display:none" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx">
+        <button type="button" id="chatAttachBtn" class="chat-attach-btn" title="Attach a file">{% icon "paper-plane" style="display:none" %}<svg width="1.1em" height="1.1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
+        <textarea id="chatInput" placeholder="Type a message…"></textarea>
+        <button id="chatSendBtn" class="btn-admin btn-primary-admin">{% icon "paper-plane" %}</button>
+      </div>
     </div>
   </div>
 </div>

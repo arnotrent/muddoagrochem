@@ -1,7 +1,7 @@
 {% extends "admin/base_admin.html" %}{% load icons %}
 {% block title %}Settings{% endblock %}{% block page_icon %}{% icon "cog" %}{% endblock %}{% block page_heading %}Settings{% endblock %}
 {% block content %}
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+<div class="rgrid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
   <div class="admin-card">
     <div class="admin-card-header"><div class="admin-card-title">{% icon "lock" %}Change Admin Password</div></div>
     <div class="admin-card-body"><form method="POST">{% csrf_token %}<input type="hidden" name="action" value="change_password">
@@ -22,7 +22,7 @@
 </div>
 <div class="admin-card">
   <div class="admin-card-header"><div class="admin-card-title">{% icon "info-circle" %}System Information</div></div>
-  <div class="admin-card-body"><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">{% for label,value in sysinfo %}<div style="padding:14px 16px;background:var(--bg-alt);border-radius:10px;border:1px solid var(--border)"><div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:5px">{{ label }}</div><div style="font-size:.92rem;font-weight:700">{{ value }}</div></div>{% endfor %}</div></div>
+  <div class="admin-card-body"><div class="rgrid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">{% for label,value in sysinfo %}<div style="padding:14px 16px;background:var(--bg-alt);border-radius:10px;border:1px solid var(--border)"><div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:5px">{{ label }}</div><div style="font-size:.92rem;font-weight:700">{{ value }}</div></div>{% endfor %}</div></div>
 </div>
 <div class="admin-card" style="border-color:var(--accent-red)">
   <div class="admin-card-header" style="background:rgba(239,68,68,.06)"><div class="admin-card-title" style="color:var(--accent-red)">{% icon "exclamation-triangle" %}Important Reminders</div></div>

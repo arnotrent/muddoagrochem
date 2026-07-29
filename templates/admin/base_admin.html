@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="{% static 'css/theme_vars.css' %}">
 <link rel="stylesheet" href="{% static 'css/style.css' %}">
 <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+<link rel="stylesheet" href="{% static 'css/responsive.css' %}">
 {% block extra_head %}{% endblock %}
 <script>(function(){var t=localStorage.getItem('muddo-theme')||'light';document.documentElement.setAttribute('data-theme',t)})();</script>
 </head>
@@ -43,9 +44,12 @@
   </aside>
   <div class="admin-main">
     <div class="admin-topbar">
-      <div class="admin-topbar-title">{% block page_icon %}{% icon "tachometer-alt" %}{% endblock %}{% block page_heading %}Dashboard{% endblock %}</div>
+      <div class="admin-topbar-title">
+        <button type="button" class="sidebar-toggle-btn" data-sidebar-toggle aria-label="Open menu">{% icon "list" %}</button>
+        {% block page_icon %}{% icon "tachometer-alt" %}{% endblock %}{% block page_heading %}Dashboard{% endblock %}
+      </div>
       <div style="display:flex;align-items:center;gap:14px">
-        <span style="font-size:.82rem;color:var(--text-3)">{{ request.user.get_full_name|default:request.user.username }}</span>
+        <span style="font-size:.82rem;color:var(--text-3)" class="hide-on-xs">{{ request.user.get_full_name|default:request.user.username }}</span>
         <div style="width:34px;height:34px;border-radius:50%;background:var(--accent-blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.88rem">{{ request.user.get_full_name|first|upper|default:request.user.username|first|upper }}</div>
         <button class="theme-btn theme-toggle-nav" title="Toggle dark mode"><span class="theme-icon-slot theme-icon-moon">{% icon "moon" %}</span><span class="theme-icon-slot theme-icon-sun">{% icon "sun" %}</span></button>
       </div>

@@ -1,7 +1,7 @@
 {% extends "admin/base_admin.html" %}{% load icons %}
 {% block title %}Field Agents{% endblock %}{% block page_icon %}{% icon "users" %}{% endblock %}{% block page_heading %}Field Agents{% endblock %}
 {% block content %}
-<div style="display:grid;grid-template-columns:360px 1fr;gap:20px">
+<div class="rgrid-sidebar" style="display:grid;grid-template-columns:360px 1fr;gap:20px">
   <div class="admin-card" style="align-self:start">
     <div class="admin-card-header"><div class="admin-card-title">{% icon "user-plus" %}Add New Agent</div></div>
     <div class="admin-card-body"><form method="POST" action="{% url 'admin_add_agent' %}">{% csrf_token %}
