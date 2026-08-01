@@ -17,5 +17,6 @@ urlpatterns = [
     path('newsletter/', views.admin_newsletter, name='admin_newsletter'),
     path('import/', views.admin_import, name='admin_import'),
     path('settings/', views.admin_settings, name='admin_settings'),
+    path('profile/', views.admin_profile, name='admin_profile'),
     path('api/analytics/', views.api_analytics, name='api_analytics'),
 ]

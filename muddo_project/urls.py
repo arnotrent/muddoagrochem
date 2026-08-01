@@ -14,8 +14,15 @@ urlpatterns = [
     path('admin-panel/', include('apps.analytics.urls')),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# NOTE: previously this only ran `if settings.DEBUG`, which meant uploaded
+# media (product photos, chat attachments) 404'd in production — Django
+# never served /media/ at all with DEBUG=False. Serving media through
+# Django isn't ideal at real scale, but for this app's traffic it's the
+# simplest fix and matches how STATIC is already served via Whitenoise.
+# Remember: Render's free-tier filesystem is ephemeral, so uploaded files
+# can still be wiped on the next deploy/restart — a persistent disk or
+# S3-backed storage (django-storages) is the real long-term fix.
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 handler404 = 'apps.core.views.error_404'
 handler500 = 'apps.core.views.error_500'

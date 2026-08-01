@@ -1,4 +1,4 @@
-{% load static icons %}
+{% load static muddo_filters icons %}
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
@@ -13,8 +13,12 @@
 <script>(function(){var t=localStorage.getItem('muddo-theme')||'light';document.documentElement.setAttribute('data-theme',t)})();</script>
 <style>
 body{margin:0;height:100vh;display:flex;flex-direction:column}
-.chat-topbar{height:60px;background:var(--bg-card);border-bottom:1px solid var(--border);padding:0 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.chat-wrap{display:flex;flex-direction:column;flex:1;min-height:0}
+.chat-topbar{height:56px;background:var(--bg-card);border-bottom:1px solid var(--border);padding:0 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.chat-page-wrap{display:flex;flex-direction:column;flex:1;min-height:0}
+.chat-layout{height:100% !important;border-radius:0 !important;border:none !important;border-top:1px solid var(--border) !important}
+.status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px}
+.status-dot.online{background:var(--accent-green)}
+.status-dot.offline{background:var(--text-4)}
 </style>
 </head>
 <body data-user-id="{{ agent.id }}" data-user-role="agent" data-user-initial="{{ agent.name|first|upper }}">
@@ -22,46 +26,89 @@ body{margin:0;height:100vh;display:flex;flex-direction:column}
 <div class="chat-topbar">
   <div style="display:flex;align-items:center;gap:10px">
     <a href="{% url 'agent_dashboard' %}" style="color:var(--text-3);font-size:.9rem;padding:6px;border-radius:8px">{% icon "arrow-left" %}</a>
-    <img src="{% static 'images/logo_full.png' %}" alt="MACL" style="height:32px;border-radius:6px;background:var(--bg-alt);padding:2px">
-    <span style="font-weight:700;font-size:.92rem">Muddo Agro — Agent Portal</span>
+    <img src="{% static 'images/logo_full.png' %}" alt="MACL" style="height:30px;border-radius:6px;background:var(--bg-alt);padding:2px">
+    <span style="font-weight:700;font-size:.9rem">Muddo Agro — Messages</span>
   </div>
   <div style="display:flex;align-items:center;gap:10px">
-    <span style="font-size:.8rem;color:var(--text-3)">{{ agent.name }}</span>
+    <span style="font-size:.8rem;color:var(--text-3)" class="hide-on-xs">{{ agent.name }}</span>
     <button class="theme-btn theme-toggle-nav"><span class="theme-icon-slot theme-icon-moon">{% icon "moon" %}</span><span class="theme-icon-slot theme-icon-sun">{% icon "sun" %}</span></button>
     <a href="{% url 'logout' %}" style="font-size:.8rem;color:var(--text-3);padding:6px 10px;border-radius:8px;border:1px solid var(--border)">{% icon "sign-out-alt" %}</a>
   </div>
 </div>
-<div class="chat-wrap">
-  <div class="chat-top-bar">
-    <div class="chat-avatar" style="background:var(--bg-deep)">A</div>
-    <div>
-      <div style="font-weight:700;font-size:.96rem">Muddo Agro Admin</div>
-      <div style="font-size:.74rem;color:var(--text-3);display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:var(--accent-green);display:inline-block"></span>Head Office · Kampala</div>
+<div class="chat-page-wrap">
+<div class="chat-layout">
+  <div class="chat-sidebar-panel">
+    <div class="chat-search-row"><input type="text" id="chatSearch" placeholder="Search…" oninput="filterContacts(this.value)"></div>
+
+    <div class="chat-contact chat-contact-broadcast" data-id="0" data-role="broadcast" data-name="Team (Everyone)" data-status="online">
+      <div class="chat-avatar chat-avatar-broadcast">{% icon "users" %}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;justify-content:space-between;gap:8px">
+          <div style="font-weight:800;font-size:.88rem;color:var(--text-primary)">📢 Team (Everyone)</div>
+          {% if last_team %}<div class="chat-contact-time">{{ last_team.created_at|date:"H:i" }}</div>{% endif %}
+        </div>
+        <div class="chat-contact-preview">{% if last_team %}{{ last_team_preview }}{% else %}Message admin and every agent at once{% endif %}</div>
+      </div>
     </div>
-    <div style="margin-left:auto;font-size:.78rem;color:var(--text-3)">{% icon "phone" style="color:var(--accent-blue);margin-right:5px" %}<a href="tel:+256772507582" style="color:var(--accent-blue)">+256 772 507582</a></div>
+
+    <div style="padding:12px 16px 8px;font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted)">Head Office</div>
+    <div class="chat-contact" data-id="{{ admin_id }}" data-role="admin" data-name="Muddo Agro Admin" data-status="online" data-search="admin head office">
+      <div class="chat-avatar" style="background:var(--bg-deep)">A</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;justify-content:space-between;gap:8px">
+          <div style="font-weight:700;font-size:.88rem;color:var(--text-primary)">Muddo Agro Admin</div>
+          {% if admin_last_time %}<div class="chat-contact-time">{{ admin_last_time|date:"H:i" }}</div>{% endif %}
+        </div>
+        <div class="chat-contact-preview">{% if admin_last_preview %}{% if admin_last_mine %}<span class="you-prefix">You: </span>{% endif %}{{ admin_last_preview }}{% else %}Head Office · Kampala{% endif %}</div>
+      </div>
+      {% if admin_unread %}<span class="chat-unread-badge">{{ admin_unread }}</span>{% endif %}
+    </div>
+
+    {% if other_agents %}
+    <div style="padding:12px 16px 8px;font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted)">Other Agents ({{ other_agents|length }})</div>
+    {% for a in other_agents %}
+    <div class="chat-contact" data-id="{{ a.id }}" data-role="agent" data-name="{{ a.name }}" data-avatar="{% if a.avatar_url %}{{ a.avatar_url }}{% endif %}" data-status="{% if a.is_online %}online{% else %}offline{% endif %}" data-last-seen="{% if a.last_seen %}{{ a.last_seen|date:'d M, H:i' }}{% endif %}" data-search="{{ a.name|lower }} {{ a.region|lower }}">
+      <div class="chat-avatar">{% if a.avatar_url %}<img src="{{ a.avatar_url }}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">{% else %}{{ a.name|first|upper }}{% endif %}{% if a.is_online %}<span class="online-dot"></span>{% else %}<span class="offline-dot"></span>{% endif %}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;justify-content:space-between;gap:8px">
+          <div style="font-weight:700;font-size:.88rem;color:var(--text-primary)">{{ a.name }}</div>
+          {% if a.last_message_time %}<div class="chat-contact-time">{{ a.last_message_time|date:"H:i" }}</div>{% endif %}
+        </div>
+        <div class="chat-contact-preview">{% if a.last_message_preview %}{% if a.last_message_mine %}<span class="you-prefix">You: </span>{% endif %}{{ a.last_message_preview }}{% else %}{{ a.region|default:"—" }} · <span class="presence-label">{% if a.is_online %}online{% else %}offline{% endif %}</span>{% endif %}</div>
+      </div>
+      {% if a.unread_from %}<span class="chat-unread-badge">{{ a.unread_from }}</span>{% endif %}
+    </div>{% endfor %}
+    {% endif %}
   </div>
-  <div class="chat-msgs-wrap" id="chatMessages">
-    <div style="text-align:center;padding:40px;color:var(--text-3)">{% icon "comments" style="font-size:2.5rem;display:block;margin-bottom:12px;opacity:.3" %}<p style="font-size:.86rem">Loading messages…</p></div>
-  </div>
-  <div id="chatReplyBar" class="reply-bar"></div>
-  <div id="chatAttachPreview" class="chat-attach-preview"></div>
-  <div class="chat-input-row">
-    <input type="file" id="chatAttachInput" style="display:none" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx">
-    <button type="button" id="chatAttachBtn" class="chat-attach-btn" title="Attach a file"><svg width="1.1em" height="1.1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
-    <textarea id="chatInput" placeholder="Type a message… (Enter to send, Shift+Enter for new line)"></textarea>
-    <button id="chatSendBtn" class="btn-admin btn-primary-admin">{% icon "paper-plane" %}</button>
+  <div class="chat-area-panel">
+    <div id="chatEmptyState" class="chat-empty">{% icon "comments" style="font-size:3.5rem;margin-bottom:16px;color:var(--border-color);opacity:.5" %}<h3 style="font-size:1rem;font-weight:700;color:var(--text-secondary);margin-bottom:8px">Select a chat to start messaging</h3><p style="font-size:.86rem">Message Admin, another agent, or everyone at once via "Team".</p></div>
+    <div id="chatMainArea" style="display:none;flex-direction:column;height:100%">
+      <div class="chat-top-bar">
+        <button type="button" id="chatBackBtn" class="chat-mobile-back-btn" aria-label="Back to contacts">{% icon "arrow-left" %}</button>
+        <div class="chat-avatar" id="chatHeaderAvatar">?</div>
+        <div><div id="chatHeaderName" style="font-weight:800;font-size:.96rem;color:var(--text-primary)">Agent</div><div id="chatHeaderStatus" style="font-size:.74rem;color:var(--text-muted)">—</div></div>
+      </div>
+      <div class="chat-msgs-wrap" id="chatMessages"></div>
+      <div id="chatReplyBar" class="reply-bar"></div>
+      <div id="chatAttachPreview" class="chat-attach-preview"></div>
+      <div class="chat-input-row">
+        <input type="file" id="chatAttachInput" style="display:none" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx">
+        <button type="button" id="chatAttachBtn" class="chat-attach-btn" title="Attach a file"><svg width="1.1em" height="1.1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
+        <textarea id="chatInput" placeholder="Type a message… (Enter to send, Shift+Enter for new line)"></textarea>
+        <button id="chatSendBtn" class="btn-admin btn-primary-admin">{% icon "paper-plane" %}</button>
+      </div>
+    </div>
   </div>
 </div>
-<script>window._adminId={{ admin_id }};</script>
+</div>
 <script src="{% static 'js/theme.js' %}"></script>
 <script src="{% static 'js/chat.js' %}"></script>
 <script>
-document.addEventListener('DOMContentLoaded',function(){
-  document.getElementById('chatMessages').innerHTML='';
-  if(window.muddoChat){
-    const fake={dataset:{id:String(window._adminId),role:'admin',name:'Admin',status:'online'},classList:{remove(){},add(){}},querySelector(){return null}};
-    window.muddoChat.selectContact(fake);
-  }
-});
+function filterContacts(q){
+  q=q.toLowerCase().trim();
+  document.querySelectorAll('.chat-contact[data-search]').forEach(c=>{
+    c.style.display=(!q||c.dataset.search.includes(q))?'':'none';
+  });
+}
 </script>
 </body></html>

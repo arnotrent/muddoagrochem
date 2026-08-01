@@ -4,6 +4,7 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.models import User
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from apps.messaging.models import Message
@@ -30,7 +31,9 @@ def admin_chat(request):
 
     for a in agents:
         m = last_by_agent.get(a.id)
-        preview = (m.content[:46] + ('…' if len(m.content) > 46 else '')) if (m and m.content) else ('📎 Attachment' if (m and m.attachment) else '')
+        preview = ''
+        if m:
+            preview = (m.content[:46] + ('…' if len(m.content) > 46 else '')) if m.content else ('📎 Attachment' if m.attachment else '')
         a.last_message_preview = preview
         a.last_message_time = m.created_at if m else None
         a.last_message_mine = bool(m and m.sender_role == 'admin')
@@ -38,12 +41,16 @@ def admin_chat(request):
 
     agents.sort(key=lambda a: (a.unread_from == 0, -(a.last_message_time.timestamp() if a.last_message_time else 0)))
 
-    last_broadcast = Message.objects.filter(is_broadcast=True, sender_role='admin').order_by('-id').first()
+    last_team = Message.objects.filter(is_broadcast=True).order_by('-id').first()
+    last_team_preview = ''
+    if last_team:
+        last_team_preview = (last_team.content[:38] + ('…' if len(last_team.content) > 38 else '')) if last_team.content else '📎 Attachment'
 
     return render(request, 'admin/chat.html', {
         'agents': agents,
         'unread_map': unread_map,
-        'last_broadcast': last_broadcast,
+        'last_team': last_team,
+        'last_team_preview': last_team_preview,
     })
 
 def _id(user):
@@ -56,6 +63,26 @@ def _bump(user):
         try: user.agent_profile.last_seen=timezone.now(); user.agent_profile.save(update_fields=['last_seen'])
         except: pass
 
+def _display_name(role, sid):
+    if role == 'admin':
+        u = User.objects.filter(pk=sid, is_staff=True).first()
+        if u:
+            try: return u.staff_profile.name
+            except Exception: return u.get_full_name() or u.username
+        return 'Admin'
+    a = Agent.objects.filter(pk=sid).first()
+    return a.name if a else 'Agent'
+
+def _avatar_url(role, sid):
+    if role == 'admin':
+        u = User.objects.filter(pk=sid).first()
+        if u:
+            try: return u.staff_profile.avatar_url
+            except Exception: return None
+        return None
+    a = Agent.objects.filter(pk=sid).first()
+    return a.avatar_url if a else None
+
 def _serialize(m):
     reply = None
     if m.reply_to_id:
@@ -64,10 +91,13 @@ def _serialize(m):
             reply = {
                 'id': r.id,
                 'sender_role': r.sender_role,
+                'sender_name': _display_name(r.sender_role, r.sender_id),
                 'content': r.content[:80] if r.content else ('📎 Attachment' if r.attachment else ''),
             }
     return {
         'id': m.id, 'sender_id': m.sender_id, 'sender_role': m.sender_role,
+        'sender_name': _display_name(m.sender_role, m.sender_id),
+        'sender_avatar_url': _avatar_url(m.sender_role, m.sender_id),
         'receiver_id': m.receiver_id, 'receiver_role': m.receiver_role,
         'content': m.content, 'read': m.read, 'is_broadcast': m.is_broadcast,
         'reply_to': reply,
@@ -85,18 +115,13 @@ def api_messages(request):
     my_id, my_role = _id(request.user)
 
     if with_role == 'broadcast':
-        # Admin viewing the "All Agents" thread.
-        msgs = Message.objects.filter(is_broadcast=True, id__gt=after).order_by('id')[:100]
+        # The shared Team channel — visible to admin and every agent alike.
+        msgs = Message.objects.filter(is_broadcast=True, id__gt=after).order_by('id')[:150]
     else:
         with_id = int(request.GET.get('with_id', 0) or 0)
-        direct = (Message.objects.filter(id__gt=after, sender_id=my_id, sender_role=my_role, receiver_id=with_id, receiver_role=with_role) |
-                  Message.objects.filter(id__gt=after, sender_id=with_id, sender_role=with_role, receiver_id=my_id, receiver_role=my_role))
-        if my_role == 'agent' and with_role == 'admin':
-            # Fold broadcast messages into the agent's thread with admin.
-            broadcasts = Message.objects.filter(id__gt=after, is_broadcast=True, receiver_role='agent')
-            msgs = (direct | broadcasts).order_by('id')[:100]
-        else:
-            msgs = direct.order_by('id')[:100]
+        msgs = (Message.objects.filter(id__gt=after, sender_id=my_id, sender_role=my_role, receiver_id=with_id, receiver_role=with_role, is_broadcast=False) |
+                Message.objects.filter(id__gt=after, sender_id=with_id, sender_role=with_role, receiver_id=my_id, receiver_role=my_role, is_broadcast=False)
+                ).order_by('id')[:100]
 
     return JsonResponse({'messages': [_serialize(m) for m in msgs]})
 
@@ -127,9 +152,8 @@ def api_send(request):
     is_broadcast = str(data.get('broadcast', '')).lower() in ('true', '1', 'on')
 
     if is_broadcast:
-        if not request.user.is_staff:
-            return JsonResponse({'error': 'Only admin can broadcast'}, status=403)
-        m = Message.objects.create(sender_id=my_id, sender_role='admin', receiver_id=0,
+        # Team channel — open to admin AND every agent, not admin-only.
+        m = Message.objects.create(sender_id=my_id, sender_role=my_role, receiver_id=0,
                                     receiver_role='agent', content=content, is_broadcast=True,
                                     reply_to=reply_to, attachment=attachment)
     else:
@@ -149,11 +173,11 @@ def api_unread(request):
     for m in msgs:
         k=f'{m.sender_id}_{m.sender_role}'; per[k]=per.get(k,0)+1
     total = msgs.count()
-    if my_role == 'agent':
-        bcast_unread = Message.objects.filter(is_broadcast=True, read=False).count()
-        if bcast_unread:
-            per['0_admin'] = per.get('0_admin', 0) + bcast_unread
-            total += bcast_unread
+    # Team-channel unread: anything not sent by me and not yet read.
+    bcast_unread = Message.objects.filter(is_broadcast=True, read=False).exclude(sender_id=my_id, sender_role=my_role).count()
+    if bcast_unread:
+        per['0_broadcast'] = bcast_unread
+        total += bcast_unread
     return JsonResponse({'total':total,'per_contact':per})
 
 @login_required
@@ -163,7 +187,8 @@ def api_mark_read(request):
     except: return JsonResponse({'error':'bad json'},status=400)
     my_id,my_role=_id(request.user)
     from_id=data.get('from_id'); from_role=data.get('from_role')
-    Message.objects.filter(sender_id=from_id,sender_role=from_role,receiver_id=my_id,receiver_role=my_role).update(read=True)
-    if my_role == 'agent' and from_role == 'admin':
-        Message.objects.filter(is_broadcast=True, read=False).update(read=True)
+    if from_role == 'broadcast':
+        Message.objects.filter(is_broadcast=True, read=False).exclude(sender_id=my_id, sender_role=my_role).update(read=True)
+    else:
+        Message.objects.filter(sender_id=from_id,sender_role=from_role,receiver_id=my_id,receiver_role=my_role,is_broadcast=False).update(read=True)
     return JsonResponse({'ok':True})

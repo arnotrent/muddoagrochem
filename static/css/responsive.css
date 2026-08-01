@@ -38,7 +38,6 @@ img { max-width:100%; height:auto; display:block; }
   }
   .sidebar-toggle-btn{ display:inline-flex !important; }
   .admin-content{ padding:14px !important; }
-  .chat-layout{ grid-template-columns:1fr !important; height:auto !important; min-height:400px !important; }
   .detail-grid{ grid-template-columns:1fr !important; }
   .contact-grid{ grid-template-columns:1fr !important; }
 }
@@ -51,8 +50,23 @@ img { max-width:100%; height:auto; display:block; }
 }
 
 /* ══════════════════════════════════════════════════════════
-   CHAT ON NARROW SCREENS
+   CHAT — MOBILE MASTER/DETAIL NAVIGATION
+   Below 767px the contact list and the open conversation can't both
+   fit side by side, so instead of squeezing them into one column at
+   once, show ONE at a time: the contact list by default, then the
+   full-width conversation once something is selected — with a back
+   button (chat.js adds `.chat-mobile-conversation-open` to the layout
+   and wires #chatBackBtn to remove it again).
 ══════════════════════════════════════════════════════════ */
+@media (max-width:767px) {
+  .chat-layout{ grid-template-columns:1fr !important; height:auto !important; min-height:calc(100vh - 60px) !important; position:relative; overflow:hidden; }
+  .chat-sidebar-panel{ display:flex; }
+  .chat-area-panel{ display:none; }
+  .chat-layout.chat-mobile-conversation-open .chat-sidebar-panel{ display:none; }
+  .chat-layout.chat-mobile-conversation-open .chat-area-panel{ display:flex; }
+  .chat-mobile-back-btn{ display:inline-flex !important; }
+}
+
 @media (max-width:600px) {
   .msg-bubble{ max-width:84% !important; }
   .chat-top-bar{ padding:10px 14px !important; }

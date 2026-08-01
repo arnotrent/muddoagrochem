@@ -1,0 +1,79 @@
+{% load static icons %}
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>My Profile — Agent Portal</title>
+<link rel="icon" type="image/png" href="{% static 'images/logo_full.png' %}">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/theme_vars.css' %}">
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+<link rel="stylesheet" href="{% static 'css/admin.css' %}">
+<link rel="stylesheet" href="{% static 'css/responsive.css' %}">
+<script>(function(){var t=localStorage.getItem('muddo-theme')||'light';document.documentElement.setAttribute('data-theme',t)})();</script>
+</head>
+<body data-user-id="{{ agent.id }}" data-user-role="agent" data-user-initial="{{ agent.name|first|upper }}">
+<div style="display:flex;min-height:100vh;background:var(--bg)">
+  <aside class="admin-sidebar">
+    <div class="sidebar-brand">
+      <img src="{% static 'images/logo_full.png' %}" alt="MACL">
+      <div><span class="sidebar-brand-name">Agent Portal</span><span class="sidebar-brand-sub">{{ agent.name }}</span></div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-section">My Portal</div>
+      <a href="{% url 'agent_dashboard' %}" class="sidebar-link">{% icon "tachometer-alt" %}Dashboard</a>
+      <a href="{% url 'agent_chat' %}" class="sidebar-link">{% icon "comments" %}Messages</a>
+      <a href="{% url 'agent_profile' %}" class="sidebar-link active">{% icon "user" %}My Profile</a>
+      <div class="sidebar-section">Quick Links</div>
+      <a href="{% url 'pesticides' %}" target="_blank" class="sidebar-link">{% icon "globe" %}View Website</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="{% url 'logout' %}" class="sidebar-link" style="color:var(--accent-red)">{% icon "sign-out-alt" %}Logout</a>
+    </div>
+  </aside>
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+    <div class="admin-topbar">
+      <div class="admin-topbar-title">
+        <button type="button" class="sidebar-toggle-btn" data-sidebar-toggle aria-label="Open menu">{% icon "list" %}</button>
+        {% icon "user" %}My Profile
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="theme-btn theme-toggle-nav"><span class="theme-icon-slot theme-icon-moon">{% icon "moon" %}</span><span class="theme-icon-slot theme-icon-sun">{% icon "sun" %}</span></button>
+      </div>
+    </div>
+    <div class="admin-content">
+      {% if messages %}{% for m in messages %}<div class="admin-flash {% if 'error' in m.tags %}flash-error{% else %}flash-success{% endif %}">{% if 'error' in m.tags %}{% icon "exclamation-circle" %}{% else %}{% icon "check-circle" %}{% endif %}{{ m }}</div>{% endfor %}{% endif %}
+      <div class="rgrid-2" style="display:grid;grid-template-columns:280px 1fr;gap:20px">
+        <div class="admin-card" style="align-self:start">
+          <div class="admin-card-body" style="text-align:center;padding:30px 20px">
+            <div style="width:110px;height:110px;border-radius:50%;margin:0 auto 16px;overflow:hidden;background:var(--accent-blue);display:flex;align-items:center;justify-content:center;color:#fff;font-size:2.4rem;font-weight:700">
+              {% if agent.avatar_url %}<img src="{{ agent.avatar_url }}" style="width:100%;height:100%;object-fit:cover">{% else %}{{ agent.name|first|upper }}{% endif %}
+            </div>
+            <div style="font-weight:800;font-size:1.05rem;color:var(--text-1)">{{ agent.name }}</div>
+            {% if agent.display_name %}<div style="font-size:.78rem;color:var(--text-3);margin-top:4px">originally <strong>{{ agent.original_name }}</strong></div>{% endif %}
+            <div style="font-size:.8rem;color:var(--text-3);margin-top:6px">Field Agent · @{{ agent.username }}{% if agent.region %} · {{ agent.region }}{% endif %}</div>
+          </div>
+        </div>
+        <div class="admin-card" style="align-self:start">
+          <div class="admin-card-header"><div class="admin-card-title">{% icon "edit" %}Edit Display Name & Photo</div></div>
+          <div class="admin-card-body">
+            <form method="POST" enctype="multipart/form-data">{% csrf_token %}
+              <div class="admin-form-group">
+                <label>Display Name</label>
+                <input name="display_name" class="admin-input" value="{{ agent.display_name }}" placeholder="{{ agent.original_name }}">
+                <div style="font-size:.76rem;color:var(--text-3);margin-top:6px">{% icon "info-circle" style="color:var(--accent-blue);margin-right:4px" %}This is what admin and other agents see across chat and the portal. No approval needed — it saves right away. Your original account name (<strong>{{ agent.original_name }}</strong>) stays on file for admin.</div>
+              </div>
+              <div class="admin-form-group">
+                <label>Profile Photo</label>
+                <input name="avatar" type="file" accept="image/*" class="admin-input">
+              </div>
+              <button type="submit" class="btn-admin btn-primary-admin">{% icon "save" %}Save Changes</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="{% static 'js/theme.js' %}"></script>
+</body></html>

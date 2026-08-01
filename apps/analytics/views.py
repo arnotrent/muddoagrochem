@@ -8,7 +8,7 @@ from django.db.models import Count,F
 from django.utils import timezone
 from apps.products.models import Product
 from apps.inventory.models import Inventory,InventoryLog
-from apps.core.models import ContactRequest,NewsletterSubscriber
+from apps.core.models import ContactRequest,NewsletterSubscriber,StaffProfile
 from apps.agents.models import Agent
 from apps.requests_app.models import SupplyRequest
 from apps.messaging.models import Message
@@ -98,16 +98,8 @@ def admin_update_request(request,rid):
     return redirect('admin_requests')
 
 # ─────────────────────────────────────────────────────────────────
-# DISTRIBUTOR LOCATION SAFEGUARDS
-#
-# Rough bounding boxes (min_lat, max_lat, min_lng, max_lng) for the
-# countries we support. This is a coarse, dependency-free guard —
-# it exists purely to catch gross data-entry mistakes (a pin dropped
-# in the ocean, on a different continent, etc). It is NOT a precise
-# border/land check; the admin-side map also runs a live reverse-geocode
-# lookup (OpenStreetMap Nominatim) so the person entering the outlet
-# gets an immediate "this looks like it's outside <country>" warning
-# before they even submit the form.
+# DISTRIBUTOR LOCATION SAFEGUARDS — rough bounding boxes, catches
+# gross data-entry mistakes (a pin in the ocean, wrong continent, etc).
 # ─────────────────────────────────────────────────────────────────
 COUNTRY_BOUNDS = {
     'Uganda':      (-1.50,  4.30, 29.50, 35.10),
@@ -121,7 +113,7 @@ COUNTRY_BOUNDS = {
 
 def _within_country(country, lat, lng):
     b = COUNTRY_BOUNDS.get(country)
-    if not b:  # 'Other' or an unrecognised value — nothing to check against
+    if not b:
         return True
     min_lat, max_lat, min_lng, max_lng = b
     return min_lat <= lat <= max_lat and min_lng <= lng <= max_lng
@@ -244,6 +236,20 @@ def admin_settings(request):
     agents=Agent.objects.select_related('user').order_by('user__first_name')
     sysinfo=[('Total Products',str(Product.objects.count())),('Total Agents',str(Agent.objects.count())),('Total Enquiries',str(ContactRequest.objects.count())),('Distributors',str(Distributor.objects.count())),('Logged in as',request.user.username),('Django',__import__('django').get_version())]
     return render(request,'admin/settings.html',{'agents':agents,'sysinfo':sysinfo})
+
+@staff_member_required
+def admin_profile(request):
+    profile, _ = StaffProfile.objects.get_or_create(user=request.user)
+    if request.method == 'POST':
+        profile.display_name = request.POST.get('display_name','').strip()
+        if 'avatar' in request.FILES:
+            f = request.FILES['avatar']
+            if f.name.rsplit('.',1)[-1].lower() in ('png','jpg','jpeg','gif','webp'):
+                profile.avatar = f
+        profile.save()
+        messages.success(request, 'Profile updated!')
+        return redirect('admin_profile')
+    return render(request,'admin/profile.html',{'profile':profile})
 
 @staff_member_required
 def api_analytics(request):

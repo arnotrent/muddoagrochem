@@ -40,7 +40,8 @@ def agent_dashboard(request):
     except: messages.error(request,'Agent profile not found.'); return redirect('login')
     agent.last_seen=timezone.now(); agent.save(update_fields=['last_seen'])
     my_requests=SupplyRequest.objects.filter(agent=agent).order_by('-created_at')[:10]
-    unread=Message.objects.filter(receiver_id=agent.id,receiver_role='agent',read=False).count()
+    unread=Message.objects.filter(receiver_id=agent.id,receiver_role='agent',read=False,is_broadcast=False).count()
+    unread += Message.objects.filter(is_broadcast=True,read=False).exclude(sender_id=agent.id,sender_role='agent').count()
     last_msg=Message.objects.filter(sender_role='admin',receiver_id=agent.id,receiver_role='agent').order_by('-id').first()
     pending_count = sum(1 for r in my_requests if r.status == 'pending')
     kpis = [
@@ -51,12 +52,66 @@ def agent_dashboard(request):
     ]
     return render(request,'agent/dashboard.html',{'agent':agent,'my_requests':my_requests,'unread':unread,'last_msg':last_msg,'total_products':Product.objects.count(),'kpis':kpis})
 
+def _thread_summary(me_id, me_role, other_id, other_role):
+    """Last direct message + unread count between `me` and one other party."""
+    last = (Message.objects.filter(is_broadcast=False, sender_id=me_id, sender_role=me_role, receiver_id=other_id, receiver_role=other_role) |
+            Message.objects.filter(is_broadcast=False, sender_id=other_id, sender_role=other_role, receiver_id=me_id, receiver_role=me_role)
+            ).order_by('-id').first()
+    unread = Message.objects.filter(is_broadcast=False, sender_id=other_id, sender_role=other_role,
+                                     receiver_id=me_id, receiver_role=me_role, read=False).count()
+    return last, unread
+
+def _preview_for(msg):
+    if not msg: return ''
+    if msg.content: return msg.content[:44] + ('…' if len(msg.content) > 44 else '')
+    return '📎 Attachment' if msg.attachment else ''
+
 @login_required
 def agent_chat(request):
     if request.user.is_staff: return redirect('admin_chat')
     agent=get_object_or_404(Agent,user=request.user)
     admin_u=User.objects.filter(is_staff=True).first()
-    return render(request,'agent/chat.html',{'agent':agent,'admin_id':admin_u.id if admin_u else 1})
+
+    admin_last, admin_unread = (None, 0)
+    if admin_u:
+        admin_last, admin_unread = _thread_summary(agent.id, 'agent', admin_u.id, 'admin')
+
+    other_agents = list(Agent.objects.filter(status='active').exclude(pk=agent.pk).select_related('user'))
+    for a in other_agents:
+        a.last_msg, a.unread_from = _thread_summary(agent.id, 'agent', a.id, 'agent')
+        a.last_message_time = a.last_msg.created_at if a.last_msg else None
+        a.last_message_preview = _preview_for(a.last_msg)
+        a.last_message_mine = bool(a.last_msg and a.last_msg.sender_id == agent.id and a.last_msg.sender_role == 'agent')
+    other_agents.sort(key=lambda a: (a.unread_from == 0, -(a.last_message_time.timestamp() if a.last_message_time else 0)))
+
+    last_team = Message.objects.filter(is_broadcast=True).order_by('-id').first()
+
+    return render(request,'agent/chat.html',{
+        'agent': agent,
+        'admin_id': admin_u.id if admin_u else 1,
+        'admin_last_preview': _preview_for(admin_last),
+        'admin_last_time': admin_last.created_at if admin_last else None,
+        'admin_last_mine': bool(admin_last and admin_last.sender_role == 'agent'),
+        'admin_unread': admin_unread,
+        'other_agents': other_agents,
+        'last_team': last_team,
+        'last_team_preview': _preview_for(last_team),
+    })
+
+@login_required
+def agent_profile(request):
+    if request.user.is_staff: return redirect('admin_profile')
+    agent = get_object_or_404(Agent, user=request.user)
+    if request.method == 'POST':
+        agent.display_name = request.POST.get('display_name','').strip()
+        if 'avatar' in request.FILES:
+            f = request.FILES['avatar']
+            if f.name.rsplit('.',1)[-1].lower() in ('png','jpg','jpeg','gif','webp'):
+                agent.avatar = f
+        agent.save()
+        messages.success(request, 'Profile updated!')
+        return redirect('agent_profile')
+    return render(request,'agent/profile.html',{'agent':agent})
 
 @staff_member_required
 def admin_agents(request):

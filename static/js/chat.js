@@ -1,15 +1,14 @@
 /* ═══════════════════════════════════════════════════════════════
-   MUDDO AGRO — CHAT SYSTEM  v4
-   Fixes vs v3:
-   - DUPLICATE MESSAGE BUG: sendMessage() appended the just-sent message
-     locally but never updated lastMsgId, so the very next 3s poll
-     re-fetched (id__gt=lastMsgId) and appended the same message again.
-     Now lastMsgId is bumped immediately after the optimistic append.
-   New in v4:
-   - Reply-to-message (swipe/hover a bubble, quote it, send).
-   - Image/file attachments (paperclip button, image preview, file chip).
-   - Read ticks: gray single check = sent, blue double check = seen.
-   - "Last seen HH:MM" text when a contact is offline.
+   MUDDO AGRO — CHAT SYSTEM  v5
+   New in v5:
+   - Team channel is now a real group chat: anyone (admin or any agent)
+     can post, and everyone sees who said what (name + avatar per
+     message), not just "Admin".
+   - Avatars: uses each person's uploaded photo when set, falls back to
+     initials otherwise (works for both contact rows and message bubbles).
+   - Mobile master-detail: on narrow screens, picking a contact slides
+     the conversation over the contact list, with a back button to
+     return — instead of both being squeezed into one column at once.
    ═══════════════════════════════════════════════════════════════ */
 
 function getCsrfToken() {
@@ -35,11 +34,13 @@ class MuddoChat {
     this.attachInput  = document.getElementById('chatAttachInput');
     this.attachPreview= document.getElementById('chatAttachPreview');
     this.replyBar     = document.getElementById('chatReplyBar');
-    this.headerName   = document.getElementById('chatHeaderName')   || document.getElementById('chatHdrName');
-    this.headerStatus = document.getElementById('chatHeaderStatus') || document.getElementById('chatHdrStatus');
-    this.headerAvatar = document.getElementById('chatHeaderAvatar') || document.getElementById('chatHdrAvatar');
-    this.chatMain     = document.getElementById('chatMainArea')     || document.getElementById('chatMain');
-    this.chatEmpty    = document.getElementById('chatEmptyState')   || document.getElementById('chatEmpty');
+    this.backBtn      = document.getElementById('chatBackBtn');
+    this.layoutEl     = document.querySelector('.chat-layout');
+    this.headerName   = document.getElementById('chatHeaderName');
+    this.headerStatus = document.getElementById('chatHeaderStatus');
+    this.headerAvatar = document.getElementById('chatHeaderAvatar');
+    this.chatMain     = document.getElementById('chatMainArea');
+    this.chatEmpty    = document.getElementById('chatEmptyState');
     this.myInitial    = document.body.dataset.userInitial || 'U';
     this.myId         = parseInt(document.body.dataset.userId || '0', 10);
     this.myRole       = document.body.dataset.userRole || 'agent';
@@ -47,9 +48,8 @@ class MuddoChat {
     this.lastDateKey   = null;
     this.lastSenderKey = null;
     this.lastRow       = null;
-    this.pendingFile    = null;
-    this.replyingTo     = null; // { id, preview, sender_role }
-    this.msgById         = {};
+    this.pendingFile   = null;
+    this.replyingTo    = null; // { id, preview, senderRole }
 
     if (this.sendBtn)  this.sendBtn.addEventListener('click', () => this.sendMessage());
     if (this.inputBox) {
@@ -68,12 +68,14 @@ class MuddoChat {
         if (f) this.setPendingFile(f);
       });
     }
+    if (this.backBtn) {
+      this.backBtn.addEventListener('click', () => this.layoutEl?.classList.remove('chat-mobile-conversation-open'));
+    }
 
     document.querySelectorAll('.chat-contact[data-id]').forEach(el => {
       el.addEventListener('click', () => this.selectContact(el));
     });
 
-    // Delegate reply-button clicks (buttons are created dynamically per bubble)
     if (this.container) {
       this.container.addEventListener('click', e => {
         const btn = e.target.closest('.msg-reply-btn');
@@ -99,16 +101,19 @@ class MuddoChat {
     el.querySelector('.chat-unread-badge')?.remove();
 
     this.currentWith = {
-      id:   parseInt(el.dataset.id, 10),
-      role: el.dataset.role || 'agent',
-      name: el.dataset.name || 'User',
+      id:     parseInt(el.dataset.id, 10),
+      role:   el.dataset.role || 'agent',
+      name:   el.dataset.name || 'User',
+      avatar: el.dataset.avatar || '',
     };
     const isBroadcast = this.currentWith.role === 'broadcast';
 
     if (this.headerName)   this.headerName.textContent = this.currentWith.name;
     if (this.headerStatus) {
       if (isBroadcast) {
-        this.headerStatus.innerHTML = 'Sends to every active field agent at once';
+        this.headerStatus.innerHTML = 'Everyone — admin and all field agents';
+      } else if (this.currentWith.role === 'admin') {
+        this.headerStatus.innerHTML = `<span class="status-dot online"></span> Head Office`;
       } else {
         const online = el.dataset.status === 'online';
         const lastSeen = el.dataset.lastSeen || '';
@@ -117,15 +122,19 @@ class MuddoChat {
           : `<span class="status-dot offline"></span> ${lastSeen ? 'Last seen ' + lastSeen : 'Offline'}`;
       }
     }
-    if (this.headerAvatar) this.headerAvatar.textContent = isBroadcast ? '📢' : this.currentWith.name.charAt(0).toUpperCase();
+    if (this.headerAvatar) {
+      this.headerAvatar.innerHTML = this.currentWith.avatar
+        ? `<img src="${this.currentWith.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
+        : (isBroadcast ? '📢' : this.currentWith.name.charAt(0).toUpperCase());
+    }
     if (this.chatMain)     this.chatMain.style.display  = 'flex';
     if (this.chatEmpty)    this.chatEmpty.style.display = 'none';
+    this.layoutEl?.classList.add('chat-mobile-conversation-open');
 
     this.lastMsgId = 0;
     this.lastDateKey = null;
     this.lastSenderKey = null;
     this.lastRow = null;
-    this.msgById = {};
     this.cancelReply();
     this.container.innerHTML = '';
     this.loadMessages(true);
@@ -145,26 +154,23 @@ class MuddoChat {
       const res  = await fetch(url);
       if (!res.ok) { console.warn('Chat load failed:', res.status); return; }
       const data = await res.json();
-      if (!data.messages?.length) return;
-
-      data.messages.forEach(m => {
-        if (m.id <= this.lastMsgId) return;
-        this.lastMsgId = m.id;
-        this.appendMessage(m);
-      });
-      if (scroll) this.scrollBottom();
-      else {
-        const container = this.container;
-        const atBottom  = container.scrollHeight - container.scrollTop - container.clientHeight < 80;
-        if (atBottom) this.scrollBottom();
+      if (data.messages?.length) {
+        data.messages.forEach(m => {
+          if (m.id <= this.lastMsgId) return;
+          this.lastMsgId = m.id;
+          this.appendMessage(m);
+        });
+        if (scroll) this.scrollBottom();
+        else {
+          const atBottom = this.container.scrollHeight - this.container.scrollTop - this.container.clientHeight < 80;
+          if (atBottom) this.scrollBottom();
+        }
       }
-      if (!isBroadcast) {
-        fetch(`/api/chat/mark-read/`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrfToken },
-          body: JSON.stringify({ from_id: this.currentWith.id, from_role: this.currentWith.role })
-        }).catch(() => {});
-      }
+      fetch(`/api/chat/mark-read/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrfToken },
+        body: JSON.stringify(isBroadcast ? { from_role: 'broadcast' } : { from_id: this.currentWith.id, from_role: this.currentWith.role })
+      }).catch(() => {});
     } catch(e) { console.warn('Chat load error:', e); }
   }
 
@@ -180,7 +186,7 @@ class MuddoChat {
   renderAttachment(m) {
     if (!m.attachment_url) return '';
     if (m.attachment_is_image) {
-      return `<a href="${m.attachment_url}" target="_blank" rel="noopener"><img class="msg-attachment-img" src="${m.attachment_url}" alt="attachment"></a>`;
+      return `<a href="${m.attachment_url}" target="_blank" rel="noopener"><img class="msg-attachment-img" src="${m.attachment_url}" alt="attachment" loading="lazy"></a>`;
     }
     const name = m.attachment_name || 'file';
     return `<a class="msg-attachment-file" href="${m.attachment_url}" target="_blank" rel="noopener" download>
@@ -191,14 +197,19 @@ class MuddoChat {
 
   renderReplyQuote(m) {
     if (!m.reply_to) return '';
-    const who = m.reply_to.sender_role === this.myRole ? 'You' : (this.currentWith?.role === 'broadcast' ? 'Admin' : (m.reply_to.sender_role === 'admin' ? 'Admin' : this.currentWith?.name));
+    const who = (m.reply_to.sender_role === this.myRole && m.reply_to.sender_name === undefined) ? 'You' : (m.reply_to.sender_name || 'them');
     return `<div class="msg-reply-quote"><strong>${this.escapeHtml(who)}</strong>${this.escapeHtml(m.reply_to.content || '')}</div>`;
   }
 
+  avatarHtml(url, initial) {
+    return url ? `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : initial;
+  }
+
   appendMessage(m) {
-    this.msgById[m.id] = m;
     const isSent = (m.sender_role === this.myRole && m.sender_id === this.myId);
-    const initial = isSent ? this.myInitial : (m.is_broadcast ? '📢' : (this.currentWith?.name?.charAt(0) || '?'));
+    const isGroup = this.currentWith?.role === 'broadcast';
+    const initial = isSent ? this.myInitial : ((m.sender_name || '?').charAt(0).toUpperCase());
+    const avatarUrl = isSent ? null : m.sender_avatar_url;
     const msgDate = new Date(m.created_at);
     const dateKey = this.dateKeyFor(msgDate);
     const time = msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -212,7 +223,7 @@ class MuddoChat {
       this.lastSenderKey = null;
     }
 
-    const senderKey = `${m.sender_role}:${m.sender_id}:${m.is_broadcast ? 'b' : 'd'}`;
+    const senderKey = `${m.sender_role}:${m.sender_id}`;
     const grouped = senderKey === this.lastSenderKey;
 
     if (grouped && this.lastRow) {
@@ -225,12 +236,16 @@ class MuddoChat {
     wrapper.className = `msg-row ${isSent ? 'sent' : 'received'}`;
     wrapper.dataset.id = m.id;
     if (grouped) wrapper.style.marginTop = '2px';
-    const broadcastTag = (m.is_broadcast && !isSent) ? '<span class="msg-broadcast-tag">Broadcast</span><br>' : '';
+
+    // In the Team channel, show who's speaking above each received message —
+    // just like a WhatsApp group, since more than one other person posts here.
+    const senderLabel = (isGroup && !isSent && !grouped) ? `<div class="msg-sender-name">${this.escapeHtml(m.sender_name || '')}</div>` : '';
     const previewText = (m.content || (m.attachment_name ? '📎 ' + m.attachment_name : '')).substring(0, 60);
+
     wrapper.innerHTML = `
-      <div class="msg-avatar-slot"><div class="msg-avatar ${isSent ? 'sent-avatar' : ''}">${initial}</div></div>
+      <div class="msg-avatar-slot"><div class="msg-avatar ${isSent ? 'sent-avatar' : ''}">${this.avatarHtml(avatarUrl, initial)}</div></div>
       <div class="msg-hover-actions"><button class="msg-reply-btn" data-id="${m.id}" data-preview="${this.escapeAttr(previewText)}" data-sender-role="${m.sender_role}" title="Reply">${this.replyIconSvg()}</button></div>
-      <div class="msg-bubble">${broadcastTag}${this.renderReplyQuote(m)}${this.renderAttachment(m)}${m.content ? this.escapeHtml(m.content) : ''}<span class="msg-time">${time}${isSent ? ' ' + (m.read ? TICK_SEEN : TICK_SENT) : ''}</span></div>
+      <div class="msg-bubble">${senderLabel}${this.renderReplyQuote(m)}${this.renderAttachment(m)}${m.content ? this.escapeHtml(m.content) : ''}<span class="msg-time">${time}${isSent ? ' ' + (m.read ? TICK_SEEN : TICK_SENT) : ''}</span></div>
     `;
     this.container.appendChild(wrapper);
 
@@ -245,8 +260,7 @@ class MuddoChat {
   startReply(id, preview, senderRole) {
     this.replyingTo = { id, preview, senderRole };
     if (!this.replyBar) return;
-    const who = (senderRole === this.myRole) ? 'You' : (this.currentWith?.name || 'them');
-    this.replyBar.innerHTML = `<div class="reply-bar-inner"><div><strong>Replying to ${this.escapeHtml(who)}</strong><div class="reply-bar-preview">${this.escapeHtml(preview)}</div></div><button type="button" id="chatReplyCancel">${'<svg class="icon" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'}</button></div>`;
+    this.replyBar.innerHTML = `<div class="reply-bar-inner"><div><strong>Replying</strong><div class="reply-bar-preview">${this.escapeHtml(preview)}</div></div><button type="button" id="chatReplyCancel">${'<svg class="icon" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'}</button></div>`;
     this.replyBar.style.display = 'block';
     document.getElementById('chatReplyCancel')?.addEventListener('click', () => this.cancelReply());
     this.inputBox?.focus();
@@ -262,15 +276,16 @@ class MuddoChat {
     if (!this.attachPreview) return;
     const isImage = file.type.startsWith('image/');
     this.attachPreview.style.display = 'flex';
+    const cancelSvg = '<svg class="icon" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
     if (isImage) {
       const reader = new FileReader();
       reader.onload = e => {
-        this.attachPreview.innerHTML = `<img src="${e.target.result}" class="attach-preview-thumb"><span class="attach-preview-name">${this.escapeHtml(file.name)}</span><button type="button" id="chatAttachCancel">${'<svg class="icon" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'}</button>`;
+        this.attachPreview.innerHTML = `<img src="${e.target.result}" class="attach-preview-thumb"><span class="attach-preview-name">${this.escapeHtml(file.name)}</span><button type="button" id="chatAttachCancel">${cancelSvg}</button>`;
         document.getElementById('chatAttachCancel')?.addEventListener('click', () => this.clearPendingFile());
       };
       reader.readAsDataURL(file);
     } else {
-      this.attachPreview.innerHTML = `<span class="attach-preview-name">📎 ${this.escapeHtml(file.name)}</span><button type="button" id="chatAttachCancel">${'<svg class="icon" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'}</button>`;
+      this.attachPreview.innerHTML = `<span class="attach-preview-name">📎 ${this.escapeHtml(file.name)}</span><button type="button" id="chatAttachCancel">${cancelSvg}</button>`;
       document.getElementById('chatAttachCancel')?.addEventListener('click', () => this.clearPendingFile());
     }
   }
@@ -321,9 +336,6 @@ class MuddoChat {
       const data = await res.json();
       if (data.message) {
         this.appendMessage(data.message);
-        // FIX for the duplicate-message bug: the next poll filters on
-        // id__gt=lastMsgId, so it must be bumped here — otherwise the
-        // message we just optimistically rendered gets fetched again.
         this.lastMsgId = Math.max(this.lastMsgId, data.message.id);
         this.scrollBottom();
         const contactEl = document.querySelector(`.chat-contact[data-id="${this.currentWith.id}"][data-role="${this.currentWith.role}"]`);
@@ -347,8 +359,6 @@ class MuddoChat {
       const data = await res.json();
       const navBadge = document.getElementById('chatNavBadge');
       if (navBadge) { navBadge.textContent = data.total || ''; navBadge.style.display = data.total ? '' : 'none'; }
-      const bell = document.getElementById('notifCount');
-      if (bell) bell.textContent = data.total || 0;
 
       if (data.per_contact) {
         document.querySelectorAll('.chat-contact[data-id]').forEach(contact => {

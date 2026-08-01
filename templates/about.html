@@ -3,22 +3,21 @@
 {% block nav_about %}active{% endblock %}
 {% block extra_head %}
 <style>
-.icon-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-card);padding:24px;transition:transform var(--dur) var(--ease),box-shadow var(--dur),border-color var(--dur)}
-.icon-card:hover{transform:translateY(-4px);border-color:var(--accent-blue);box-shadow:var(--glow-blue)}
-.icon-badge{width:46px;height:46px;border-radius:14px;background:var(--bg-alt);color:var(--accent-blue);box-shadow:0 0 0 1px rgba(56,189,248,.18);display:flex;align-items:center;justify-content:center;font-size:1.05rem}
-.product-photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;margin-top:18px}
-.product-photo-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-card);overflow:hidden;text-decoration:none;display:block;transition:transform var(--dur) var(--ease),box-shadow var(--dur),border-color var(--dur)}
-.product-photo-card:hover{transform:translateY(-5px);border-color:var(--accent-blue);box-shadow:var(--glow-blue)}
-.ppc-img{aspect-ratio:1;background:var(--bg-alt);overflow:hidden}
-.ppc-img img{width:100%;height:100%;object-fit:cover;transition:transform 450ms var(--ease)}
-.product-photo-card:hover .ppc-img img{transform:scale(1.06)}
-.ppc-name{padding:10px 12px 12px;font-size:.8rem;font-weight:700;color:var(--text-1);text-align:center;line-height:1.35}
-.cat-thumb{width:56px;height:56px;border-radius:14px;object-fit:cover;flex-shrink:0;box-shadow:var(--sh-sm)}
+.icon-badge{width:52px;height:52px;border-radius:14px;background:var(--bg-alt);color:var(--accent-blue);box-shadow:0 0 0 1px rgba(56,189,248,.18);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0}
+.about-product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:18px}
+.about-product-card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;overflow:hidden;text-decoration:none;display:flex;flex-direction:column;transition:transform var(--dur) var(--ease),box-shadow var(--dur),border-color var(--dur)}
+.about-product-card:hover{transform:translateY(-6px);border-color:var(--accent-blue);box-shadow:var(--sh-md)}
+.apc-img{aspect-ratio:4/3;background:var(--bg-alt);overflow:hidden}
+.apc-img img{width:100%;height:100%;object-fit:cover;transition:transform 450ms var(--ease)}
+.about-product-card:hover .apc-img img{transform:scale(1.06)}
+.apc-body{padding:14px 16px 16px}
+.apc-name{font-size:.88rem;font-weight:700;color:var(--text-1);line-height:1.35;margin-bottom:4px}
+.apc-cat{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--accent-blue)}
 </style>
 {% endblock %}
 {% block content %}
 <div style="width:100%;background:#0F172A;overflow:hidden">
-  <img src="{% static 'images/hero_about_banner.png' %}" alt="About Muddo Agrochemicals Ltd" style="width:100%;height:auto;max-height:320px;object-fit:cover;object-position:center 45%;display:block">
+  <img src="{% static 'images/hero_about_banner.png' %}" alt="About Muddo Agrochemicals Ltd" style="width:100%;height:auto;max-height:340px;object-fit:cover;object-position:center 42%;display:block">
 </div>
 <section class="section" style="padding-bottom:0">
   <div class="container">
@@ -46,12 +45,13 @@
       </div>
     </div>
     <div style="border-radius:20px;overflow:hidden;height:420px;box-shadow:var(--sh-lg)">
-      <img src="{% static 'images/about_side.jpg' %}" alt="Healthy tomato crop grown with MACL products" style="width:100%;height:100%;object-fit:cover">
+      <img src="{% static 'images/trust_handshake.jpg' %}" alt="Trust, respect, integrity and honesty — how MACL does business" style="width:100%;height:100%;object-fit:cover">
     </div>
   </div>
 </div></section>
 
-<!-- WHAT WE DISTRIBUTE — every product kept, photo on top, name below -->
+<!-- WHAT WE DISTRIBUTE — redesigned: one clean header per category, then a
+     proper responsive card grid (no redundant duplicate thumbnail icon) -->
 <section class="section-alt"><div class="container">
   <div class="section-header">
     <div class="section-tag" style="margin-left:auto;margin-right:auto">{% icon "flask" %}Our Products</div>
@@ -59,17 +59,16 @@
     <p class="section-desc">Every product below is MAAIF-registered and moves through our shelves every week — not a catalogue of things we merely stock.</p>
   </div>
   {% for g in product_groups %}
-  <div style="margin-bottom:44px">
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:6px">
-      <div class="icon-card" style="padding:12px;flex-shrink:0"><div class="icon-badge">{% icon g.icon %}</div></div>
-      <img class="cat-thumb" src="{% static g.thumb %}" alt="" onerror="this.style.display='none'">
-      <div><h3 style="font-size:1.15rem;font-weight:700;color:var(--text-1);margin:0">{{ g.title }}</h3><p style="font-size:.86rem;color:var(--text-3);margin:2px 0 0;max-width:60ch">{{ g.blurb }}</p></div>
+  <div style="margin-bottom:52px">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:22px">
+      <div class="icon-badge">{% icon g.icon %}</div>
+      <div><h3 style="font-size:1.2rem;font-weight:700;color:var(--text-1);margin:0">{{ g.title }}</h3><p style="font-size:.86rem;color:var(--text-3);margin:3px 0 0;max-width:60ch">{{ g.blurb }}</p></div>
     </div>
-    <div class="product-photo-grid">
+    <div class="about-product-grid">
       {% for p in g.products %}
-      <a href="{{ p.get_absolute_url }}" class="product-photo-card">
-        <div class="ppc-img"><img src="{{ p.display_image }}" alt="{{ p.name }}" loading="lazy" onerror="this.src='{% static 'images/products_all.jpg' %}'"></div>
-        <div class="ppc-name">{{ p.name }}</div>
+      <a href="{{ p.get_absolute_url }}" class="about-product-card">
+        <div class="apc-img"><img src="{{ p.display_image }}" alt="{{ p.name }}" loading="lazy" onerror="this.src='{% static 'images/products_all.jpg' %}'"></div>
+        <div class="apc-body"><div class="apc-name">{{ p.name }}</div><div class="apc-cat">{{ g.title }}</div></div>
       </a>{% endfor %}
     </div>
   </div>

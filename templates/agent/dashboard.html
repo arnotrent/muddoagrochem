@@ -23,6 +23,7 @@
       <div class="sidebar-section">My Portal</div>
       <a href="{% url 'agent_dashboard' %}" class="sidebar-link active">{% icon "tachometer-alt" %}Dashboard</a>
       <a href="{% url 'agent_chat' %}" class="sidebar-link">{% icon "comments" %}Messages{% if unread > 0 %}<span class="sidebar-badge" style="background:var(--accent-red);color:#fff">{{ unread }}</span>{% endif %}</a>
+      <a href="{% url 'agent_profile' %}" class="sidebar-link">{% icon "user" %}My Profile</a>
       <div class="sidebar-section">Quick Links</div>
       <a href="{% url 'pesticides' %}" target="_blank" class="sidebar-link">{% icon "globe" %}View Website</a>
     </nav>
@@ -38,14 +39,14 @@
       </div>
       <div style="display:flex;align-items:center;gap:12px">
         <span style="font-size:.8rem;color:var(--text-3)" class="hide-on-xs">{{ agent.region|default:"" }}{% if agent.district %} · {{ agent.district }}{% endif %}</span>
-        <div style="width:34px;height:34px;border-radius:50%;background:var(--accent-blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.88rem">{{ agent.name|first|upper }}</div>
+        <a href="{% url 'agent_profile' %}" style="width:34px;height:34px;border-radius:50%;background:var(--accent-blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.88rem;overflow:hidden">{% if agent.avatar_url %}<img src="{{ agent.avatar_url }}" style="width:100%;height:100%;object-fit:cover">{% else %}{{ agent.name|first|upper }}{% endif %}</a>
         <button class="theme-btn theme-toggle-nav"><span class="theme-icon-slot theme-icon-moon">{% icon "moon" %}</span><span class="theme-icon-slot theme-icon-sun">{% icon "sun" %}</span></button>
       </div>
     </div>
     <div class="admin-content">
       {% if messages %}{% for m in messages %}<div class="admin-flash {% if 'error' in m.tags %}flash-error{% else %}flash-success{% endif %}">{% if 'error' in m.tags %}{% icon "exclamation-circle" %}{% else %}{% icon "check-circle" %}{% endif %}{{ m }}</div>{% endfor %}{% endif %}
-      <div style="border-radius:var(--r-card);overflow:hidden;margin-bottom:22px;background:var(--bg-deep);display:flex;align-items:center;justify-content:center;height:170px">
-        <img src="{% static 'images/banner_agent.png' %}" alt="MACL Agent" style="height:100%;width:auto;max-width:100%;object-fit:contain">
+      <div style="border-radius:var(--r-card);overflow:hidden;margin-bottom:22px;height:170px">
+        <img src="{% static 'images/banner_agent.png' %}" alt="MACL Agent" style="width:100%;height:100%;object-fit:cover;object-position:center;display:block">
       </div>
       <div class="kpi-grid">
         {% for icon,key,val,lbl in kpis %}

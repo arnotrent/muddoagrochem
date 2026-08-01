@@ -7,13 +7,17 @@ def global_context(request):
         try:
             from apps.messaging.models import Message
             from apps.requests_app.models import SupplyRequest
-            ctx['unread_count']=Message.objects.filter(receiver_role='admin',read=False).count()
+            direct_unread = Message.objects.filter(receiver_role='admin',read=False,is_broadcast=False).count()
+            team_unread = Message.objects.filter(is_broadcast=True,read=False).exclude(sender_id=request.user.id,sender_role='admin').count()
+            ctx['unread_count'] = direct_unread + team_unread
             ctx['pending_count']=SupplyRequest.objects.filter(status='pending').count()
         except: pass
     if request.user.is_authenticated and not request.user.is_staff:
         try:
             agent=request.user.agent_profile
             from apps.messaging.models import Message
-            ctx['agent_unread']=Message.objects.filter(receiver_id=agent.id,receiver_role='agent',read=False).count()
+            direct_unread = Message.objects.filter(receiver_id=agent.id,receiver_role='agent',read=False,is_broadcast=False).count()
+            team_unread = Message.objects.filter(is_broadcast=True,read=False).exclude(sender_id=agent.id,sender_role='agent').count()
+            ctx['agent_unread'] = direct_unread + team_unread
         except: pass
     return ctx

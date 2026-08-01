@@ -17,7 +17,7 @@
 <div class="admin-wrap">
   <aside class="admin-sidebar">
     <div class="sidebar-brand">
-      <img src="{% static 'images/logo_admin.png' %}" alt="MACL Admin">
+      <img src="{% static 'images/logo_full.png' %}" alt="MACL">
       <div><span class="sidebar-brand-name">MACL Admin</span><span class="sidebar-brand-sub">Muddo Agro Chemicals</span></div>
     </div>
     <nav class="sidebar-nav">
@@ -30,12 +30,13 @@
       <div class="sidebar-section">Operations</div>
       <a href="{% url 'admin_requests' %}" class="sidebar-link {% if request.resolver_match.url_name == 'admin_requests' %}active{% endif %}">{% icon "envelope" %}Enquiries{% if pending_count %}<span class="sidebar-badge" style="background:var(--accent-blue);color:#fff">{{ pending_count }}</span>{% endif %}</a>
       <a href="{% url 'admin_supply_requests' %}" class="sidebar-link {% if 'supply' in request.resolver_match.url_name %}active{% endif %}">{% icon "truck" %}Supply Requests</a>
-      <a href="{% url 'admin_agents' %}" class="sidebar-link {% if 'agent' in request.resolver_match.url_name %}active{% endif %}">{% icon "users" %}Field Agents</a>
+      <a href="{% url 'admin_agents' %}" class="sidebar-link {% if request.resolver_match.url_name == 'admin_agents' %}active{% endif %}">{% icon "users" %}Field Agents</a>
       <a href="{% url 'admin_chat' %}" class="sidebar-link {% if 'chat' in request.resolver_match.url_name %}active{% endif %}">{% icon "comments" %}Messages{% if unread_count %}<span class="sidebar-badge" style="background:var(--accent-red);color:#fff">{{ unread_count }}</span>{% endif %}</a>
       <div class="sidebar-section">Tools</div>
       <a href="{% url 'admin_newsletter' %}" class="sidebar-link {% if 'newsletter' in request.resolver_match.url_name %}active{% endif %}">{% icon "paper-plane" %}Newsletter</a>
       <a href="{% url 'admin_import' %}" class="sidebar-link {% if 'import' in request.resolver_match.url_name %}active{% endif %}">{% icon "upload" %}Import CSV</a>
       <a href="{% url 'admin_settings' %}" class="sidebar-link {% if 'settings' in request.resolver_match.url_name %}active{% endif %}">{% icon "cog" %}Settings</a>
+      <a href="{% url 'admin_profile' %}" class="sidebar-link {% if request.resolver_match.url_name == 'admin_profile' %}active{% endif %}">{% icon "user" %}My Profile</a>
     </nav>
     <div class="sidebar-footer">
       <a href="{% url 'index' %}" class="sidebar-link" target="_blank">{% icon "globe" %}View Website</a>
@@ -49,8 +50,8 @@
         {% block page_icon %}{% icon "tachometer-alt" %}{% endblock %}{% block page_heading %}Dashboard{% endblock %}
       </div>
       <div style="display:flex;align-items:center;gap:14px">
-        <span style="font-size:.82rem;color:var(--text-3)" class="hide-on-xs">{{ request.user.get_full_name|default:request.user.username }}</span>
-        <div style="width:34px;height:34px;border-radius:50%;background:var(--accent-blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.88rem">{{ request.user.get_full_name|first|upper|default:request.user.username|first|upper }}</div>
+        <span style="font-size:.82rem;color:var(--text-3)" class="hide-on-xs">{{ request.user.staff_profile.name|default:request.user.get_full_name|default:request.user.username }}</span>
+        <a href="{% url 'admin_profile' %}" style="width:34px;height:34px;border-radius:50%;background:var(--accent-blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.88rem;overflow:hidden">{% if request.user.staff_profile.avatar_url %}<img src="{{ request.user.staff_profile.avatar_url }}" style="width:100%;height:100%;object-fit:cover">{% else %}{{ request.user.get_full_name|first|upper|default:request.user.username|first|upper }}{% endif %}</a>
         <button class="theme-btn theme-toggle-nav" title="Toggle dark mode"><span class="theme-icon-slot theme-icon-moon">{% icon "moon" %}</span><span class="theme-icon-slot theme-icon-sun">{% icon "sun" %}</span></button>
       </div>
     </div>

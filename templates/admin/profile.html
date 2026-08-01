@@ -1,0 +1,33 @@
+{% extends "admin/base_admin.html" %}{% load icons %}
+{% block title %}My Profile{% endblock %}{% block page_icon %}{% icon "user" %}{% endblock %}{% block page_heading %}My Profile{% endblock %}
+{% block content %}
+<div class="rgrid-2" style="display:grid;grid-template-columns:280px 1fr;gap:20px">
+  <div class="admin-card" style="align-self:start">
+    <div class="admin-card-body" style="text-align:center;padding:30px 20px">
+      <div style="width:110px;height:110px;border-radius:50%;margin:0 auto 16px;overflow:hidden;background:var(--accent-blue);display:flex;align-items:center;justify-content:center;color:#fff;font-size:2.4rem;font-weight:700">
+        {% if profile.avatar_url %}<img src="{{ profile.avatar_url }}" style="width:100%;height:100%;object-fit:cover">{% else %}{{ profile.name|first|upper }}{% endif %}
+      </div>
+      <div style="font-weight:800;font-size:1.05rem;color:var(--text-1)">{{ profile.name }}</div>
+      {% if profile.display_name %}<div style="font-size:.78rem;color:var(--text-3);margin-top:4px">originally <strong>{{ profile.original_name }}</strong></div>{% endif %}
+      <div style="font-size:.8rem;color:var(--text-3);margin-top:6px">Administrator · @{{ request.user.username }}</div>
+    </div>
+  </div>
+  <div class="admin-card" style="align-self:start">
+    <div class="admin-card-header"><div class="admin-card-title">{% icon "edit" %}Edit Display Name & Photo</div></div>
+    <div class="admin-card-body">
+      <form method="POST" enctype="multipart/form-data">{% csrf_token %}
+        <div class="admin-form-group">
+          <label>Display Name</label>
+          <input name="display_name" class="admin-input" value="{{ profile.display_name }}" placeholder="{{ profile.original_name }}">
+          <div style="font-size:.76rem;color:var(--text-3);margin-top:6px">{% icon "info-circle" style="color:var(--accent-blue);margin-right:4px" %}This is what agents and colleagues see across the admin panel and chat. Your account name (<strong>{{ profile.original_name }}</strong>) is unchanged and stays visible to you here.</div>
+        </div>
+        <div class="admin-form-group">
+          <label>Profile Photo</label>
+          <input name="avatar" type="file" accept="image/*" class="admin-input">
+        </div>
+        <button type="submit" class="btn-admin btn-primary-admin">{% icon "save" %}Save Changes</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
