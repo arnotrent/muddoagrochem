@@ -1,0 +1,57 @@
+/* ═══════════════════════════════════════════════════════════════
+   PRODUCT IMAGE DISPLAY — round 4 fix
+   Previously `.product-card-img img` used object-fit:cover inside a
+   210px box, which crops tall/narrow bottle & sachet pack-shots, and
+   a dark gradient overlay sat across the bottom of every photo,
+   washing it out further. That combination is what made product
+   photos hard to actually see clearly.
+
+   Fix: show the whole photo (object-fit:contain) against a neutral
+   background with breathing room, drop the darkening overlay, and
+   give the image area more height so packaging is legible. This
+   file loads after style.css specifically so these rules win without
+   duplicating the entire stylesheet.
+═══════════════════════════════════════════════════════════════ */
+
+.product-card-img {
+  height: 240px;
+  background: var(--bg-alt);
+}
+.product-card-img img {
+  object-fit: contain;
+  padding: 18px;
+  transition: transform 450ms var(--ease);
+}
+.product-card:hover .product-card-img img {
+  transform: scale(1.04);
+  filter: none;
+}
+/* Remove the dark bottom gradient that washed photos out — the stock
+   badge and quick-view button already have their own solid/backdrop
+   styling, so they stay legible without it. */
+.product-card-img::after {
+  display: none;
+}
+
+/* Same treatment on the product detail page's larger hero image */
+.detail-img {
+  background: var(--bg-alt);
+}
+.detail-img img {
+  object-fit: contain;
+  padding: 24px;
+}
+
+/* Quick-view modal image */
+.modal-img-side {
+  background: var(--bg-alt) !important;
+}
+.modal-img-side img {
+  object-fit: contain;
+  padding: 16px;
+  min-height: 0 !important;
+}
+
+@media (max-width: 479px) {
+  .product-card-img { height: 210px; }
+}

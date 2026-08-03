@@ -12,6 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'css/theme_vars.css' %}">
 <link rel="stylesheet" href="{% static 'css/style.css' %}">
+<link rel="stylesheet" href="{% static 'css/product-fix.css' %}">
 <link rel="stylesheet" href="{% static 'css/typography.css' %}">
 <link rel="stylesheet" href="{% static 'css/responsive.css' %}">
 <link rel="stylesheet" href="{% static 'css/animations.css' %}">
@@ -81,15 +82,17 @@
   <a href="{% url 'contact' %}" class="mm-link" onclick="closeMenu()">{% icon "envelope" %}Contact Us</a>
   <a href="{% url 'track' %}" class="mm-link" onclick="closeMenu()">{% icon "search" %}Track Enquiry</a>
   <div class="mm-section">Contact Details</div>
-  <a href="tel:+256772507582" class="mm-link">{% icon "phone" %}+256 772 507582</a>
-  <a href="mailto:muddoagro811@gmail.com" class="mm-link">{% icon "envelope" %}muddoagro811@gmail.com</a>
-  <div class="mm-section">Staff</div>
+  <a href="tel:{{ company_phone|cut:' '|cut:'/' }}" class="mm-link">{% icon "phone" %}{{ company_phone }}</a>
+  <a href="mailto:{{ company_email }}" class="mm-link">{% icon "envelope" %}{{ company_email }}</a>
+  <!-- Staff Login is intentionally footer-only, even on mobile — it's a
+       rarely-used entry point for staff, not a customer-facing nav item,
+       so it doesn't belong in the primary hamburger menu. Already-logged-in
+       staff still get their portal + logout below. -->
   {% if request.user.is_authenticated %}
+  <div class="mm-section">Staff</div>
     {% if request.user.is_staff %}<a href="{% url 'admin_dashboard' %}" class="mm-link" onclick="closeMenu()">{% icon "cog" %}Admin Panel</a>
     {% else %}<a href="{% url 'agent_dashboard' %}" class="mm-link" onclick="closeMenu()">{% icon "user" %}Agent Portal</a>{% endif %}
     <a href="{% url 'logout' %}" class="mm-link" style="color:var(--accent-red)" onclick="closeMenu()">{% icon "sign-out-alt" style="color:var(--accent-red)" %}Logout</a>
-  {% else %}
-    <a href="{% url 'login' %}" class="mm-link" onclick="closeMenu()">{% icon "lock" %}Staff Login</a>
   {% endif %}
 </div>
 
@@ -108,17 +111,17 @@
 
 <main id="main-content">{% block content %}{% endblock %}</main>
 
-<!-- FOOTER — contact details live here too; Staff Login is footer-ONLY (never in the header) -->
+<!-- FOOTER — contact details live here too; Staff Login is footer-ONLY (never in the header or the mobile drawer) -->
 <footer class="footer">
   <div class="container">
     <div class="rgrid-4" style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1.3fr;gap:40px;margin-bottom:40px">
       <div>
         <img src="{% static 'images/logo_full.png' %}" alt="MACL" style="height:48px;margin-bottom:14px;background:#fff;border-radius:8px;padding:4px">
-        <p style="font-size:.88rem;line-height:1.75;color:rgba(255,255,255,.65);max-width:30ch;margin-bottom:14px">Uganda's trusted MAAIF-registered distributor of high-quality agrochemicals since 2020.</p>
+        <p style="font-size:.88rem;line-height:1.75;color:rgba(255,255,255,.65);max-width:30ch;margin-bottom:14px">Uganda's trusted MAAIF-registered distributor of high-quality agrochemicals since {{ year_founded|default:"2020" }}.</p>
         <div class="footer-social">
-          <a href="https://facebook.com/p/MUDDO-AGRO-Chemicals-LTD-100063836929481/" target="_blank" aria-label="Facebook">{% icon "facebook-f" %}</a>
+          {% if facebook_url %}<a href="{{ facebook_url }}" target="_blank" aria-label="Facebook">{% icon "facebook-f" %}</a>{% endif %}
           <a href="https://wa.me/{{ wa_number }}" target="_blank" aria-label="WhatsApp">{% icon "whatsapp" %}</a>
-          <a href="mailto:muddoagro811@gmail.com" aria-label="Email">{% icon "envelope" %}</a>
+          <a href="mailto:{{ company_email }}" aria-label="Email">{% icon "envelope" %}</a>
         </div>
       </div>
       <div>
@@ -144,9 +147,9 @@
       <div>
         <h4>Contact & Staff</h4>
         <ul class="footer-contact">
-          <li>{% icon "map-marker-alt" %}Container Village Nakivubo, Equity Bank Basement V013, Kampala</li>
-          <li>{% icon "phone" %}<a href="tel:+256772507582">+256 772 507582</a></li>
-          <li>{% icon "envelope" %}<a href="mailto:muddoagro811@gmail.com">muddoagro811@gmail.com</a></li>
+          <li>{% icon "map-marker-alt" %}{{ company_address }}</li>
+          <li>{% icon "phone" %}<a href="tel:{{ company_phone|cut:' '|cut:'/' }}">{{ company_phone }}</a></li>
+          <li>{% icon "envelope" %}<a href="mailto:{{ company_email }}">{{ company_email }}</a></li>
         </ul>
         <ul style="margin-top:8px">
           {% if request.user.is_authenticated %}
@@ -162,7 +165,7 @@
       </div>
     </div>
     <div class="footer-bottom">
-      <p>© {% now "Y" %} Muddo Agro Chemicals LTD. MAAIF-Registered Distributor.</p>
+      <p>© {% now "Y" %} Muddo Agro Chemicals LTD. All Rights Reserved. MAAIF-Registered Distributor.</p>
       <a href="{% url 'sitemap' %}">Sitemap</a>
     </div>
   </div>

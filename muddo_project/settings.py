@@ -82,8 +82,45 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+# ─────────────────────────────────────────────────────────────────
+# MEDIA STORAGE
+#
+# By default, uploaded files (product photos, chat attachments, staff
+# avatars) go to local disk under MEDIA_ROOT. That works fine in dev,
+# but on Render's free plan the filesystem is EPHEMERAL — uploads
+# vanish the next time the service restarts or redeploys, even though
+# the URL routing to serve them (below, in urls.py) is correct.
+#
+# If AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / AWS_STORAGE_BUCKET_NAME
+# are set (e.g. as Render environment variables), media automatically
+# switches to S3-backed storage instead, which survives restarts.
+# Without them, it falls back to local disk exactly as before — nothing
+# breaks if you don't set these up, but attachments/photos will keep
+# disappearing on Render's free tier until you do.
+# ─────────────────────────────────────────────────────────────────
+AWS_ACCESS_KEY_ID     = os.environ.get('AWS_ACCESS_KEY_ID', '')
+AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY', '')
+AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME', '')
+AWS_S3_REGION_NAME    = os.environ.get('AWS_S3_REGION_NAME', 'us-east-1')
+AWS_S3_CUSTOM_DOMAIN  = os.environ.get('AWS_S3_CUSTOM_DOMAIN', '')  # optional CDN/custom domain
+
+USE_S3_MEDIA = bool(AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_STORAGE_BUCKET_NAME)
+
+if USE_S3_MEDIA:
+    INSTALLED_APPS.append('storages')
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    AWS_DEFAULT_ACL = None
+    AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_QUERYSTRING_AUTH = False
+    if AWS_S3_CUSTOM_DOMAIN:
+        MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
+    else:
+        MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com/'
+    MEDIA_ROOT = BASE_DIR / 'media'  # unused when S3 is active, kept for completeness
+else:
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 SESSION_COOKIE_AGE = 86400 * 7

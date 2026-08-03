@@ -20,7 +20,7 @@
         <div class="admin-form-group" style="margin-bottom:0">
           <label>Preview</label>
           <div id="add_imgPreviewWrap" style="width:72px;height:72px;border-radius:10px;background:var(--bg-alt);border:1.5px dashed var(--border-color,var(--border));display:flex;align-items:center;justify-content:center;overflow:hidden">
-            <img id="add_imgPreview" style="display:none;width:100%;height:100%;object-fit:cover">
+            <img id="add_imgPreview" style="display:none;width:100%;height:100%;object-fit:contain;padding:4px">
             <span id="add_imgPreviewIcon" style="color:var(--text-muted);font-size:.7rem;text-align:center;padding:4px">No image</span>
           </div>
         </div>
@@ -37,9 +37,9 @@
     <input type="text" id="ps" placeholder="Search…" oninput="document.querySelectorAll('#pt tbody tr[data-search]').forEach(r=>r.style.display=r.dataset.search.includes(this.value.toLowerCase())?'':'')" style="padding:7px 12px;border:1.5px solid var(--border-color);border-radius:9px;font-family:var(--font-body,'DM Sans',sans-serif);font-size:.84rem;background:var(--bg-input);color:var(--text-primary);width:200px;outline:none">
   </div>
   <div class="tbl-wrap">
-    <table class="data-table" id="pt"><thead><tr><th style="width:44px"></th><th>Product</th><th>Category</th><th>Active Ingredient</th><th>Pack Sizes</th><th>Stock</th><th>Actions</th></tr></thead>
+    <table class="data-table" id="pt"><thead><tr><th style="width:56px"></th><th>Product</th><th>Category</th><th>Active Ingredient</th><th>Pack Sizes</th><th>Stock</th><th>Actions</th></tr></thead>
     <tbody>{% for p in products %}<tr data-search="{{ p.name|lower }} {{ p.active_ingredient|lower }} {{ p.category }}">
-      <td><img src="{{ p.display_image }}" style="width:40px;height:40px;object-fit:cover;border-radius:8px" onerror="this.style.display='none'"></td>
+      <td><a href="{{ p.display_image }}" target="_blank" title="View full image"><img src="{{ p.display_image }}" style="width:48px;height:48px;object-fit:contain;background:var(--bg-alt);border:1px solid var(--border-color,var(--border));border-radius:8px;padding:3px" onerror="this.style.display='none'"></a></td>
       <td><strong>{{ p.name }}</strong>{% if p.description %}<br><small style="color:var(--text-muted);font-size:.76rem">{{ p.description|truncatechars:55 }}</small>{% endif %}</td>
       <td><span class="badge {% if p.category == 'pesticide' %}badge-denied{% elif p.category == 'herbicide' %}badge-approved{% elif p.category == 'fungicide' %}badge-new{% else %}badge-pending{% endif %}">{{ p.get_category_display }}</span></td>
       <td style="font-size:.82rem;color:var(--text-muted)">{{ p.active_ingredient|default:"—"|truncatechars:40 }}</td>
@@ -79,7 +79,7 @@
         <div class="admin-form-group" style="margin-bottom:0">
           <label>Current</label>
           <div style="width:72px;height:72px;border-radius:10px;background:var(--bg-alt);border:1.5px dashed var(--border-color,var(--border));overflow:hidden">
-            <img id="ep_preview" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">
+            <img id="ep_preview" style="width:100%;height:100%;object-fit:contain;padding:4px" onerror="this.style.display='none'">
           </div>
         </div>
         <div class="admin-form-group"><label>Replace Image (upload)</label><input name="product_image" id="ep_imgInput" type="file" accept="image/*" class="admin-input" onchange="previewImage('ep_imgInput','ep_preview',null)"></div>

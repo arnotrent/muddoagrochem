@@ -1,14 +1,17 @@
 /* ═══════════════════════════════════════════════════════════════
-   MUDDO AGRO — CHAT SYSTEM  v5
-   New in v5:
-   - Team channel is now a real group chat: anyone (admin or any agent)
-     can post, and everyone sees who said what (name + avatar per
-     message), not just "Admin".
-   - Avatars: uses each person's uploaded photo when set, falls back to
-     initials otherwise (works for both contact rows and message bubbles).
-   - Mobile master-detail: on narrow screens, picking a contact slides
-     the conversation over the contact list, with a back button to
-     return — instead of both being squeezed into one column at once.
+   MUDDO AGRO — CHAT SYSTEM  v6
+   Fixes vs v5:
+   - DUPLICATE ATTACHMENT MESSAGES: sendMessage() had no "in flight" guard
+     and the send button stayed enabled the whole time a file was
+     uploading. A second click (or a second Enter) while the first
+     upload was still in progress fired a second real POST — two
+     genuinely separate messages, not a rendering glitch. Now the
+     button disables and Enter is ignored until the first send finishes.
+   - Scrolling: see static/css/admin.css / responsive.css for the
+     min-height:0 flex fix that was the real cause of messages being
+     stuck below the visible area.
+   New:
+   - Emoji picker (🙂 button next to the attach button).
    ═══════════════════════════════════════════════════════════════ */
 
 function getCsrfToken() {
@@ -20,6 +23,8 @@ function getCsrfToken() {
 
 const TICK_SENT = '<svg class="icon" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.75;vertical-align:-1px"><polyline points="20 6 9 17 4 12"/></svg>';
 const TICK_SEEN = '<svg class="icon msg-tick-seen" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><polyline points="1 13 5 17 11 9"/><polyline points="7 13 11 17 21 5"/></svg>';
+
+const EMOJI_SET = ['😀','😂','😊','😍','😘','🤔','😉','😅','😢','😭','😡','👍','👎','🙏','👏','💪','🤝','✅','❌','⚠️','🔥','💧','🌱','🌾','🐛','🚚','📦','📅','⏰','📍','💰','📞','✉️','😴','🎉'];
 
 class MuddoChat {
   constructor() {
@@ -33,6 +38,8 @@ class MuddoChat {
     this.attachBtn    = document.getElementById('chatAttachBtn');
     this.attachInput  = document.getElementById('chatAttachInput');
     this.attachPreview= document.getElementById('chatAttachPreview');
+    this.emojiBtn     = document.getElementById('chatEmojiBtn');
+    this.emojiPanel   = document.getElementById('chatEmojiPanel');
     this.replyBar     = document.getElementById('chatReplyBar');
     this.backBtn      = document.getElementById('chatBackBtn');
     this.layoutEl     = document.querySelector('.chat-layout');
@@ -50,6 +57,7 @@ class MuddoChat {
     this.lastRow       = null;
     this.pendingFile   = null;
     this.replyingTo    = null; // { id, preview, senderRole }
+    this.sending       = false; // guards against double-submit
 
     if (this.sendBtn)  this.sendBtn.addEventListener('click', () => this.sendMessage());
     if (this.inputBox) {
@@ -66,6 +74,32 @@ class MuddoChat {
       this.attachInput.addEventListener('change', () => {
         const f = this.attachInput.files && this.attachInput.files[0];
         if (f) this.setPendingFile(f);
+      });
+    }
+    if (this.emojiBtn && this.emojiPanel) {
+      if (!this.emojiPanel.dataset.built) {
+        this.emojiPanel.innerHTML = EMOJI_SET.map(e => `<button type="button" class="emoji-item">${e}</button>`).join('');
+        this.emojiPanel.dataset.built = '1';
+      }
+      this.emojiBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        this.emojiPanel.classList.toggle('open');
+      });
+      this.emojiPanel.addEventListener('click', e => {
+        const btn = e.target.closest('.emoji-item');
+        if (!btn || !this.inputBox) return;
+        const start = this.inputBox.selectionStart ?? this.inputBox.value.length;
+        const end = this.inputBox.selectionEnd ?? this.inputBox.value.length;
+        const val = this.inputBox.value;
+        this.inputBox.value = val.slice(0, start) + btn.textContent + val.slice(end);
+        const pos = start + btn.textContent.length;
+        this.inputBox.setSelectionRange(pos, pos);
+        this.inputBox.focus();
+      });
+      document.addEventListener('click', e => {
+        if (!this.emojiPanel.contains(e.target) && e.target !== this.emojiBtn) {
+          this.emojiPanel.classList.remove('open');
+        }
       });
     }
     if (this.backBtn) {
@@ -197,7 +231,7 @@ class MuddoChat {
 
   renderReplyQuote(m) {
     if (!m.reply_to) return '';
-    const who = (m.reply_to.sender_role === this.myRole && m.reply_to.sender_name === undefined) ? 'You' : (m.reply_to.sender_name || 'them');
+    const who = m.reply_to.sender_name || 'them';
     return `<div class="msg-reply-quote"><strong>${this.escapeHtml(who)}</strong>${this.escapeHtml(m.reply_to.content || '')}</div>`;
   }
 
@@ -237,8 +271,6 @@ class MuddoChat {
     wrapper.dataset.id = m.id;
     if (grouped) wrapper.style.marginTop = '2px';
 
-    // In the Team channel, show who's speaking above each received message —
-    // just like a WhatsApp group, since more than one other person posts here.
     const senderLabel = (isGroup && !isSent && !grouped) ? `<div class="msg-sender-name">${this.escapeHtml(m.sender_name || '')}</div>` : '';
     const previewText = (m.content || (m.attachment_name ? '📎 ' + m.attachment_name : '')).substring(0, 60);
 
@@ -296,12 +328,20 @@ class MuddoChat {
     if (this.attachPreview) { this.attachPreview.style.display = 'none'; this.attachPreview.innerHTML = ''; }
   }
 
+  setSendingState(isSending) {
+    this.sending = isSending;
+    if (this.sendBtn) this.sendBtn.disabled = isSending;
+    if (this.attachBtn) this.attachBtn.disabled = isSending;
+  }
+
   async sendMessage() {
+    if (this.sending) return; // guards against double-click / double-Enter while a send is still in flight
     const content = this.inputBox?.value.trim() || '';
     if (!content && !this.pendingFile) return;
     if (!this.currentWith) return;
     const file = this.pendingFile;
     const replyId = this.replyingTo?.id || null;
+    this.setSendingState(true);
     this.inputBox.value = '';
     this.inputBox.style.height = 'auto';
     this.clearPendingFile();
@@ -346,6 +386,7 @@ class MuddoChat {
         if (timeEl) timeEl.textContent = new Date(data.message.created_at).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
       }
     } catch(e) { console.error(e); }
+    finally { this.setSendingState(false); }
   }
 
   scrollBottom() {

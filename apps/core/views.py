@@ -4,7 +4,7 @@ from django.http import JsonResponse, HttpResponse
 from django.contrib import messages
 from django.core.mail import send_mail
 from django.conf import settings
-from apps.core.models import ContactRequest, NewsletterSubscriber
+from apps.core.models import ContactRequest, NewsletterSubscriber, SiteSettings, FAQ
 from apps.products.models import Product
 from apps.distributors.models import Distributor
 
@@ -37,18 +37,10 @@ def index(request):
     return render(request,'index.html',{'stats':stats,'featured':featured,'why_cards':why_cards,'categories':categories})
 
 def about(request):
-    stats_list=[('2020','Year Founded'),(f'{Product.objects.count()}+','Product Lines'),
+    site = SiteSettings.load()
+    stats_list=[(site.year_founded,'Year Founded'),(f'{Product.objects.count()}+','Product Lines'),
                 (f'{Distributor.objects.count()}+','Distributor Outlets'),('4','Regions Covered')]
-    faqs=[
-        ('Are your products MAAIF-registered?','Yes. All products distributed by MACL are registered with Uganda\'s Ministry of Agriculture, Animal Industry and Fisheries (MAAIF). Certificates available on request.'),
-        ('Do you sell wholesale?','Absolutely. We supply retail and wholesale. Contact us at +256 772 507582 for bulk pricing and distributor partnerships.'),
-        ('How do I choose the right product?','Call us or visit our Kampala office. Describe your crop and pest/weed/disease — our team will recommend the right product, dosage and timing.'),
-        ('Are your products environmentally safe?','All registered products include environmental safety assessments. Follow label instructions: buffer zones, pre-harvest intervals, and proper PPE.'),
-        ('Do you deliver upcountry?','Products available through our 11-outlet nationwide network. Use our Store Locator. For large bulk orders, direct delivery can be arranged.'),
-        ('What is the minimum order?','No minimum for retail. For wholesale, minimums vary by product — contact our sales team.'),
-        ('How do I report a product problem?','Call +256 772 507582 or email muddoagro811@gmail.com. Keep the product, note the batch number, and describe the issue. We investigate all complaints.'),
-        ('What is your return policy?','Sealed, unused products in original packaging may be returned within 7 days with proof of purchase.'),
-    ]
+    faqs = FAQ.objects.filter(active=True)
     categories_meta = [
         ('pesticide',  'bug',        'Pesticides',        'images/thumb_pesticides.jpg',
          "Fast, reliable knockdown for the insects that eat into your harvest — from aphids and bollworm to stem borers."),
@@ -64,9 +56,10 @@ def about(request):
         products = Product.objects.filter(category=cat)
         if products.exists():
             product_groups.append({'icon': icon, 'title': title, 'thumb': thumb, 'blurb': blurb, 'products': products})
-    return render(request,'about.html',{'stats_list':stats_list,'faqs':faqs,'product_groups':product_groups})
+    return render(request,'about.html',{'stats_list':stats_list,'faqs':faqs,'product_groups':product_groups,'site':site})
 
 def contact(request):
+    site = SiteSettings.load()
     if request.method=='POST':
         ref=_ref()
         cr=ContactRequest.objects.create(
@@ -74,19 +67,24 @@ def contact(request):
             email=request.POST.get('email','').strip(), phone=request.POST.get('phone','').strip(),
             subject=request.POST.get('subject','').strip(), message=request.POST.get('message','').strip())
         _send(f'Muddo Agro — Enquiry Received [{ref}]',[cr.email],
-              f"Dear {cr.name},\n\nThank you for contacting Muddo Agro Chemicals LTD.\nYour reference: {ref}\n\nWe'll respond within 1 business day.\n\nMuddo Agro Team\n+256 772 507582")
-        _send(f'New Enquiry [{ref}] — {cr.subject}',[settings.COMPANY_EMAIL],
+              f"Dear {cr.name},\n\nThank you for contacting Muddo Agro Chemicals LTD.\nYour reference: {ref}\n\nWe'll respond within 1 business day.\n\nMuddo Agro Team\n{site.company_phone}")
+        _send(f'New Enquiry [{ref}] — {cr.subject}',[site.company_email],
               f"From: {cr.name} <{cr.email}>\nPhone: {cr.phone}\nSubject: {cr.subject}\n\n{cr.message}")
         messages.success(request,f'Message sent! Reference: <strong>{ref}</strong> — save it to track your enquiry.')
         return redirect('contact')
+    phone_lines = site.company_phone
+    if site.company_phone_secondary:
+        phone_lines += f'<br>{site.company_phone_secondary}'
+    phone_links = ' / '.join(f'<a href="tel:{p.strip()}">{p.strip()}</a>' for p in site.company_phone.split('/'))
     contact_items = [
-        ('map-marker-alt','Visit us in Kampala','Container Village Nakivubo, Equity Bank Basement V013, P.O Box 25240',''),
-        ('phone','Call or WhatsApp us','<a href="tel:+256772507582">+256 772 507582</a> / <a href="tel:+256702507582">0702-507582</a><br><a href="tel:+256772971620">0772 971620</a> / <a href="tel:+256701971620">0701-971620</a>',''),
-        ('envelope','Email the team','<a href="mailto:muddoagro811@gmail.com">muddoagro811@gmail.com</a>',''),
-        ('clock','When we\'re open','Monday to Saturday, 8am until 6pm',''),
-        ('facebook','Follow along on Facebook','<a href="https://facebook.com/p/MUDDO-AGRO-Chemicals-LTD-100063836929481/" target="_blank">MUDDO AGRO Chemicals LTD</a>',''),
+        ('map-marker-alt','Visit us in Kampala', site.company_address, ''),
+        ('phone','Call or WhatsApp us', phone_links + (f'<br><a href="tel:{site.company_phone_secondary.split("/")[0].strip()}">{site.company_phone_secondary}</a>' if site.company_phone_secondary else ''), ''),
+        ('envelope','Email the team', f'<a href="mailto:{site.company_email}">{site.company_email}</a>', ''),
+        ('clock','When we\'re open', site.business_hours, ''),
     ]
-    return render(request,'contact.html',{'contact_items':contact_items})
+    if site.facebook_url:
+        contact_items.append(('facebook','Follow along on Facebook', f'<a href="{site.facebook_url}" target="_blank">MUDDO AGRO Chemicals LTD</a>', ''))
+    return render(request,'contact.html',{'contact_items':contact_items,'site':site})
 
 def track(request):
     ref=request.GET.get('ref','').strip().upper(); result=None; rows=[]

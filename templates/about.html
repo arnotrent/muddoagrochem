@@ -8,7 +8,7 @@
 .about-product-card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;overflow:hidden;text-decoration:none;display:flex;flex-direction:column;transition:transform var(--dur) var(--ease),box-shadow var(--dur),border-color var(--dur)}
 .about-product-card:hover{transform:translateY(-6px);border-color:var(--accent-blue);box-shadow:var(--sh-md)}
 .apc-img{aspect-ratio:4/3;background:var(--bg-alt);overflow:hidden}
-.apc-img img{width:100%;height:100%;object-fit:cover;transition:transform 450ms var(--ease)}
+.apc-img img{width:100%;height:100%;object-fit:contain;padding:10px;transition:transform 450ms var(--ease)}
 .about-product-card:hover .apc-img img{transform:scale(1.06)}
 .apc-body{padding:14px 16px 16px}
 .apc-name{font-size:.88rem;font-weight:700;color:var(--text-1);line-height:1.35;margin-bottom:4px}
@@ -22,7 +22,7 @@
 <section class="section" style="padding-bottom:0">
   <div class="container">
     <div style="font-size:.82rem;color:var(--text-3);margin-bottom:14px"><a href="{% url 'index' %}" style="color:var(--accent-blue)">Home</a> / <span style="color:var(--text-1);font-weight:700">About</span></div>
-    <div class="hero-badge" style="margin-bottom:16px">{% icon "certificate" %}MAAIF-Registered · Est. 2020</div>
+    <div class="hero-badge" style="margin-bottom:16px">{% icon "certificate" %}MAAIF-Registered · Est. {{ site.year_founded }}</div>
     <h1 style="margin:0 0 14px;font-size:clamp(1.6rem,3vw,2.3rem)">Farming Uganda depends on, <span style="color:var(--accent-blue)">supplied honestly.</span></h1>
     <p style="max-width:60ch;color:var(--text-2);font-size:1.02rem;line-height:1.75">We're MACL — a Kampala-based, MAAIF-registered distributor of pesticides, herbicides, fungicides, fertilizers and spraying equipment. No counterfeits, no guesswork, just genuine products backed by people who actually know how to use them.</p>
   </div>
@@ -33,9 +33,9 @@
     <div>
       <div class="section-tag">{% icon "building" %}Who We Are</div>
       <h2 class="section-title" style="margin:6px 0 16px;text-align:left">MACL — Muddo Agro Chemicals LTD</h2>
-      <p style="line-height:1.8;margin-bottom:14px">Based in Kampala's Container Village Nakivubo, Equity Bank Basement V013, MACL is a MAAIF-registered distributor of pesticides, herbicides, fungicides, fertilizers and spraying equipment serving all regions of Uganda.</p>
+      <p style="line-height:1.8;margin-bottom:14px">Based in Kampala's {{ site.company_address }}, MACL is a MAAIF-registered distributor of pesticides, herbicides, fungicides, fertilizers and spraying equipment serving all regions of Uganda.</p>
       <p style="line-height:1.8;margin-bottom:14px">We partner with manufacturers in India, China and Europe to bring authentic, proven agrochemical solutions at competitive prices — zero counterfeit products, ever.</p>
-      <p style="line-height:1.8">{% icon "phone" style="color:var(--accent-blue);margin-right:6px" %}<strong>Tel:</strong> 0772-507582 / 0702-507582<br>{% icon "envelope" style="color:var(--accent-blue);margin-right:6px" %}<strong>Email:</strong> <a href="mailto:muddoagro811@gmail.com" style="color:var(--accent-blue)">muddoagro811@gmail.com</a></p>
+      <p style="line-height:1.8">{% icon "phone" style="color:var(--accent-blue);margin-right:6px" %}<strong>Tel:</strong> {{ site.company_phone }}{% if site.company_phone_secondary %} / {{ site.company_phone_secondary }}{% endif %}<br>{% icon "envelope" style="color:var(--accent-blue);margin-right:6px" %}<strong>Email:</strong> <a href="mailto:{{ site.company_email }}" style="color:var(--accent-blue)">{{ site.company_email }}</a></p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:24px">
         {% for stat,label in stats_list %}
         <div style="text-align:center;padding:16px;background:var(--bg-alt);border-radius:14px">
@@ -50,8 +50,7 @@
   </div>
 </div></section>
 
-<!-- WHAT WE DISTRIBUTE — redesigned: one clean header per category, then a
-     proper responsive card grid (no redundant duplicate thumbnail icon) -->
+<!-- WHAT WE DISTRIBUTE -->
 <section class="section-alt"><div class="container">
   <div class="section-header">
     <div class="section-tag" style="margin-left:auto;margin-right:auto">{% icon "flask" %}Our Products</div>
@@ -78,15 +77,17 @@
 <section class="section"><div class="container" style="max-width:820px">
   <div class="section-header"><div class="section-tag" style="margin-left:auto;margin-right:auto">{% icon "question-circle" %}FAQ</div><h2 class="section-title">Frequently Asked Questions</h2></div>
   <div style="display:flex;flex-direction:column;gap:8px">
-    {% for q,a in faqs %}
+    {% for faq in faqs %}
     <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-card);overflow:hidden">
       <button onclick="toggleFaq(this)" style="width:100%;padding:17px 20px;text-align:left;background:none;border:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:14px;font-weight:700;color:var(--text-1)">
-        <span>{{ q }}</span>{% icon "chevron-down" style="color:var(--accent-blue);transition:transform .3s;font-size:.8rem" %}
+        <span>{{ faq.question }}</span>{% icon "chevron-down" style="color:var(--accent-blue);transition:transform .3s;font-size:.8rem" %}
       </button>
       <div style="max-height:0;overflow:hidden;transition:max-height .35s var(--ease)">
-        <div style="padding:0 20px 17px;font-size:.94rem;color:var(--text-2);line-height:1.78;border-top:1px solid var(--border)">{{ a }}</div>
+        <div style="padding:0 20px 17px;font-size:.94rem;color:var(--text-2);line-height:1.78;border-top:1px solid var(--border)">{{ faq.answer }}</div>
       </div>
-    </div>{% endfor %}
+    </div>{% empty %}
+    <p style="text-align:center;color:var(--text-3)">No FAQs published yet.</p>
+    {% endfor %}
   </div>
 </div></section>
 <script>

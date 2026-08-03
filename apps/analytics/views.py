@@ -8,7 +8,7 @@ from django.db.models import Count,F
 from django.utils import timezone
 from apps.products.models import Product
 from apps.inventory.models import Inventory,InventoryLog
-from apps.core.models import ContactRequest,NewsletterSubscriber,StaffProfile
+from apps.core.models import ContactRequest,NewsletterSubscriber,StaffProfile,SiteSettings,FAQ
 from apps.agents.models import Agent
 from apps.requests_app.models import SupplyRequest
 from apps.messaging.models import Message
@@ -250,6 +250,62 @@ def admin_profile(request):
         messages.success(request, 'Profile updated!')
         return redirect('admin_profile')
     return render(request,'admin/profile.html',{'profile':profile})
+
+# ─────────────────────────────────────────────────────────────────
+# SITE CONTENT — company info + FAQ, editable by admin instead of
+# hardcoded. Both feed apps/core/views.py (About/Contact pages).
+# ─────────────────────────────────────────────────────────────────
+@staff_member_required
+def admin_site_content(request):
+    site = SiteSettings.load()
+    faqs = FAQ.objects.all()
+    return render(request,'admin/site_content.html',{'site':site,'faqs':faqs})
+
+@staff_member_required
+def admin_update_site_settings(request):
+    if request.method == 'POST':
+        site = SiteSettings.load()
+        site.year_founded            = request.POST.get('year_founded', site.year_founded).strip()
+        site.company_phone           = request.POST.get('company_phone', site.company_phone).strip()
+        site.company_phone_secondary = request.POST.get('company_phone_secondary', '').strip()
+        site.company_email           = request.POST.get('company_email', site.company_email).strip()
+        site.company_address         = request.POST.get('company_address', site.company_address).strip()
+        site.business_hours          = request.POST.get('business_hours', site.business_hours).strip()
+        site.whatsapp_number         = request.POST.get('whatsapp_number', site.whatsapp_number).strip()
+        site.facebook_url            = request.POST.get('facebook_url', '').strip()
+        site.save()
+        messages.success(request, 'Site details updated — About, Contact and the footer now reflect this.')
+    return redirect('admin_site_content')
+
+@staff_member_required
+def admin_add_faq(request):
+    if request.method == 'POST':
+        q = request.POST.get('question','').strip(); a = request.POST.get('answer','').strip()
+        if q and a:
+            max_order = FAQ.objects.count()
+            FAQ.objects.create(question=q, answer=a, order=max_order, active=True)
+            messages.success(request, 'FAQ added!')
+        else:
+            messages.error(request, 'Both a question and an answer are required.')
+    return redirect('admin_site_content')
+
+@staff_member_required
+def admin_edit_faq(request, fid):
+    faq = get_object_or_404(FAQ, pk=fid)
+    if request.method == 'POST':
+        faq.question = request.POST.get('question', faq.question).strip()
+        faq.answer   = request.POST.get('answer', faq.answer).strip()
+        faq.active   = request.POST.get('active') == 'on'
+        faq.save()
+        messages.success(request, 'FAQ updated!')
+    return redirect('admin_site_content')
+
+@staff_member_required
+def admin_delete_faq(request, fid):
+    if request.method == 'POST':
+        get_object_or_404(FAQ, pk=fid).delete()
+        messages.success(request, 'FAQ removed.')
+    return redirect('admin_site_content')
 
 @staff_member_required
 def api_analytics(request):

@@ -26,9 +26,6 @@ img { max-width:100%; height:auto; display:block; }
 
 /* ══════════════════════════════════════════════════════════
    ADMIN + AGENT PANELS ON MOBILE
-   Both portals share the `.admin-sidebar` component. Below 767px it's
-   hidden by default and re-shown as a slide-over drawer via the
-   hamburger button wired in theme.js ([data-sidebar-toggle]).
 ══════════════════════════════════════════════════════════ */
 @media (max-width:767px) {
   .admin-sidebar{ display:none; }
@@ -43,23 +40,31 @@ img { max-width:100%; height:auto; display:block; }
 }
 .sidebar-toggle-btn{ display:none; }
 
-@media (max-width:479px) { .products-grid{ grid-template-columns:1fr !important; gap:16px !important; } .product-card-img{ height:180px !important; } }
+@media (max-width:479px) { .products-grid{ grid-template-columns:1fr !important; gap:16px !important; } .product-card-img{ height:230px !important; } }
 @media (min-width:480px) and (max-width:767px) {
   .products-grid{ grid-template-columns:1fr 1fr !important; gap:12px !important; }
-  .product-card-img{ height:150px !important; }
+  .product-card-img{ height:190px !important; }
 }
 
 /* ══════════════════════════════════════════════════════════
-   CHAT — MOBILE MASTER/DETAIL NAVIGATION
+   CHAT — MOBILE MASTER/DETAIL NAVIGATION + THE REAL SCROLL FIX
    Below 767px the contact list and the open conversation can't both
-   fit side by side, so instead of squeezing them into one column at
-   once, show ONE at a time: the contact list by default, then the
-   full-width conversation once something is selected — with a back
-   button (chat.js adds `.chat-mobile-conversation-open` to the layout
-   and wires #chatBackBtn to remove it again).
+   fit side by side, so show ONE at a time (chat.js toggles
+   `.chat-mobile-conversation-open`, wires #chatBackBtn to undo it).
+
+   IMPORTANT: `.chat-layout` must have a *definite* height on mobile,
+   not `height:auto`. `auto` was the actual cause of messages being
+   stuck "below the view level" — it let the whole box grow with
+   content instead of giving `.chat-msgs-wrap` a fixed region to
+   scroll inside, so the page grew instead of the chat scrolling.
 ══════════════════════════════════════════════════════════ */
 @media (max-width:767px) {
-  .chat-layout{ grid-template-columns:1fr !important; height:auto !important; min-height:calc(100vh - 60px) !important; position:relative; overflow:hidden; }
+  .chat-layout{
+    grid-template-columns:1fr !important;
+    height:calc(100vh - 60px) !important;
+    min-height:0 !important;
+    position:relative; overflow:hidden;
+  }
   .chat-sidebar-panel{ display:flex; }
   .chat-area-panel{ display:none; }
   .chat-layout.chat-mobile-conversation-open .chat-sidebar-panel{ display:none; }
@@ -73,4 +78,5 @@ img { max-width:100%; height:auto; display:block; }
   .chat-input-row{ padding:10px 12px !important; }
   .chat-contact-preview{ max-width:130px !important; }
   .chat-msgs-wrap{ padding:14px !important; }
+  .chat-emoji-panel{ width:190px !important; left:auto !important; right:0 !important; }
 }

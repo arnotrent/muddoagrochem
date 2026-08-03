@@ -1,117 +1,124 @@
-# This update — attachments, group chat, profiles, dashboard charts, About redesign
+# This update — copyright/nav fixes, editable site content, real duplicate-message fix, storage reliability, product photo display
 
-Drop these into your repo at matching paths, then:
+Drop into your repo at matching paths, then:
 
 ```bash
+pip install -r requirements.txt
 python manage.py migrate
 python manage.py collectstatic --noinput
 ```
 
-New migrations this round: `agents/0002_agent_display_avatar.py`,
-`core/0002_staffprofile.py`. (Everything from earlier rounds — messaging,
-distributors — is also included in this same folder tree.)
+New migrations: `core/0003_sitesettings_faq.py` (schema) and
+`core/0004_seed_site_content.py` (data — copies your current FAQs and
+company details into the new editable tables, so nothing changes visually
+until you edit them in Admin → Site Content).
 
 ---
 
-## 1. Attachments not opening — the real bug
+## 1. Copyright + mobile nav
 
-Your `urls.py` only served `/media/` when `DEBUG=True`:
-```python
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+- Footer now reads "© {year} Muddo Agro Chemicals LTD. **All Rights
+  Reserved.** MAAIF-Registered Distributor."
+- **Staff Login removed from the mobile hamburger menu.** It's footer-only
+  now on every screen size — the mobile drawer only shows it if you're
+  *already* logged in (as your Admin Panel/Agent Portal + Logout links),
+  never as a login prompt for visitors.
+
+## 2. Site content is now admin-editable
+
+New **Admin → Site Content** page. Two things you can change without
+touching code:
+- **Company info**: year founded, phone (+ optional second number), email,
+  address, business hours, WhatsApp number, Facebook URL. These feed the
+  About page, Contact page, and the site footer directly.
+- **FAQs**: add, edit, hide, or delete — shown on the About page in the
+  order you set.
+
+Your current hardcoded content was copied into the database automatically
+by the migration, so the site looks identical until you actually change
+something.
+
+## 3. The office-room banner photos
+
+Swapped `banner_admin.png` / `banner_agent.png` for the two photos you
+specified — the rooms with the "MACL ADMIN"/"MACL AGENT" signage on the
+wall — replacing the flatter logo-plaque renders from last round.
+
+## 4. Chat — the real duplicate-message cause, found
+
+Every previous "duplicate message" symptom you've shown had one thing in
+common: an attachment, which takes longer to upload than plain text — and
+the Send button had no "busy" state. A second click (or a second Enter,
+easy to do when the UI looks unresponsive during upload) fired a second,
+genuinely separate POST to the server. That's not a rendering bug, it's
+really two messages. Fixed by disabling Send (and ignoring Enter) the
+moment a send starts, until it finishes.
+
+## 5. Chat — messages hidden below the visible area
+
+Real cause: a classic flexbox gotcha. `.chat-msgs-wrap` had `flex:1;
+overflow-y:auto`, but its parent containers didn't have `min-height:0` —
+so instead of the message list scrolling *inside* a fixed-height box, the
+whole box grew to fit its content, pushing the newest messages below the
+viewport with nothing to scroll. Added `min-height:0` through the whole
+chain, and fixed the mobile chat layout specifically: it was using
+`height:auto` on small screens, which is the same problem in a more
+literal way. Now it uses a definite `calc(100vh - …)` height on mobile too.
+
+## 6. Emoji picker
+
+A 🙂 button next to the attachment button opens a small emoji grid;
+picking one inserts it at the cursor position in the message box. Works
+for admin, agents, and the Team channel alike.
+
+## 7. Attachments/avatars — why they weren't really working, and what's fixed vs. what needs your input
+
+Two separate problems were stacked on top of each other:
+
+- **Django wasn't serving `/media/` at all in production** — this was
+  fixed two rounds ago (`urls.py` no longer gates media serving behind
+  `DEBUG`). If you hadn't redeployed that fix yet, this alone explains
+  broken images/avatars.
+- **Render's free-tier disk is ephemeral** — even with media serving
+  fixed, uploaded files disappear the next time the service restarts or
+  redeploys (Render's own documented behavior, not something code alone
+  can fix). This is very likely why you're still seeing broken images
+  even after redeploying — the file was there right after upload, then
+  gone after the service spun down or redeployed.
+
+This round adds **optional S3-backed storage** (`django-storages` +
+`boto3`, already in `requirements.txt`). Set these three environment
+variables on Render (`render.yaml` now lists them, `sync: false` so you
+fill them in from the dashboard) and uploads switch automatically to S3,
+surviving restarts:
 ```
-On Render, `DEBUG=False`, so **every** uploaded file — chat attachments and
-product photos alike — 404'd. Nothing was wrong with the files themselves
-or their format; they were just never being served. Fixed by serving media
-regardless of `DEBUG`.
+AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY
+AWS_STORAGE_BUCKET_NAME
+```
+Leave them unset and everything behaves exactly as before — nothing
+breaks, but uploads will keep disappearing on restart until you add an S3
+bucket (or a Render persistent disk, the paid alternative). I can't create
+the actual S3 bucket for you from here — that's an AWS account/console
+step — but the code is ready the moment you do.
 
-**Still worth knowing:** Render's free tier has an ephemeral filesystem, so
-uploaded files can vanish on the next deploy/restart even with this fix.
-That's a separate, bigger problem (needs a persistent disk or S3 via
-`django-storages`) — this fix makes attachments work *right now*, not
-necessarily forever.
+## 8. Product photos — now actually visible
 
-## 2. Chat is now a real group — "Team" channel
+Root cause: `.product-card-img` used `object-fit:cover` in a 210px box —
+which crops tall, narrow bottle/sachet photos — plus a dark gradient sat
+across the bottom of every image, washing it out further. Product photos
+now use `object-fit:contain` against a neutral background with padding, so
+the whole pack shot is visible with nothing cropped or darkened; the image
+area is also taller (240px) for legibility. Same fix applied to the
+product detail page's hero image and the quick-view modal. Admin's product
+table thumbnails are now click-to-view-full-size and no longer crop either.
 
-Renamed "All Agents" → **"Team (Everyone)"**, and it's no longer admin-only:
-any agent can post there too, and it's visible to admin + every agent.
-Received messages in Team show who sent them (name + their photo, like a
-WhatsApp group) since more than one person posts there now.
+## Still outstanding, flagged honestly
 
-**Agents now have a full contact list**, not just a single admin thread:
-Team (pinned), Admin, and every other active agent — so agents can message
-each other directly, not only through admin.
-
-## 3. Chat on mobile — proper master/detail navigation
-
-Previously both the contact list and the open conversation were squeezed
-into one column at once. Now on narrow screens you see the contact list
-full-width; tapping a contact slides the conversation over it full-width,
-with a back arrow to return — the same pattern WhatsApp/Messenger use, and
-it applies to both the admin and agent chat pages since they now share the
-same layout.
-
-## 4. Self-service profiles — no admin approval needed
-
-New "My Profile" page for both admin and agents (linked in both sidebars):
-- Change your **display name** any time — saves immediately, no approval
-  step.
-- Upload a **profile photo** — shows up as your avatar everywhere in chat
-  (contact list, message bubbles, topbar).
-- Your **original account name stays on file** and is shown as a quiet
-  "originally X" line under your chosen display name — both on your own
-  profile page and in Admin → Field Agents, so admin always has the
-  original reference even after someone changes their public name.
-
-## 5. Sidebar logo — fixed to your real MACL logo
-
-The admin sidebar was using a separate small `logo_admin.png` (which is
-what showed blurry/broken in your screenshot) instead of your actual site
-logo. Both admin and agent sidebars now use `logo_full.png` — your one real
-logo — consistently. The two "MACL Admin"/"MACL Agent" wall-plaque graphics
-you sent stay exactly where they were: banners at the top of the two
-dashboards, nowhere near the sidebar or the browser tab icon.
-
-## 6. Banners now fill their container
-
-Previous banners used `object-fit:contain`, which is exactly what caused
-those dark letterbox bars on either side. Switched to `object-fit:cover` so
-the image fills the full width with no gaps (small crop on the edges is the
-trade-off, but no more bars).
-
-## 7. Admin Dashboard — animated + interactive charts
-
-- KPI numbers now count up from 0 on page load.
-- Three real charts, built from your existing `/api/analytics/` endpoint
-  (it existed already, just wasn't rendered anywhere): a 14-day enquiries
-  trend line, a supply-requests-by-status doughnut, and a
-  products-by-category doughnut. Colors are pulled live from your theme
-  tokens, so they follow light/dark mode automatically. Uses Chart.js via
-  CDN (same pattern as Leaflet — no new backend dependency).
-
-## 8. About Us — redesigned product showcase + new photo
-
-The old "What We Distribute" section repeated the category icon twice (an
-icon badge *and* a separate thumbnail image side by side) and used plain
-1:1 square photo tiles with no real card styling — that's the "unprofessional"
-look. Replaced with: one clean category header (icon + title + blurb, no
-duplicate), and a proper 4:3 card grid matching the visual language used
-elsewhere on the site (hover lift, consistent border/radius, category
-label). Also swapped the old tomato-crop photo in "Who We Are" for your new
-trust/handshake image, since "Trust, Respect, Integrity, Honesty" fits that
-section's message better than a crop photo that already appears on the
-homepage.
-
-## Still not addressed (flagging honestly, not quietly dropped)
-
-- **Real WhatsApp Business API / Stories** — as noted last round, this chat
-  is a custom system, not connected to anyone's actual WhatsApp account.
-  Group chat, reply, attachments, and read ticks are now genuinely
-  WhatsApp-*like*, built entirely on your own data — a real WhatsApp
-  integration is a separate, much larger project.
-- **Persistent file storage** — see the caveat in section 1. Worth doing
-  before you rely heavily on uploads (product photos or chat attachments).
-- A full visual QA pass on every single admin sub-page's chart/animation
-  potential (only the main Dashboard got charts this round, since that's
-  what was asked for) — happy to extend the same treatment (e.g. an
-  Inventory trend chart, an Enquiries-by-subject breakdown) if useful.
+- The S3 bucket itself needs to be created and its credentials added by
+  you (or by me in a future session if you'd like guided help) — I can't
+  provision AWS resources from this sandbox.
+- A few remaining hardcoded phone/email mentions elsewhere in the site
+  (e.g. the homepage's "Not Sure Which Product" CTA) weren't switched to
+  the new editable fields this round — only About, Contact, and the
+  footer were in scope for this pass. Happy to sweep the rest next time.

@@ -18,5 +18,10 @@ urlpatterns = [
     path('import/', views.admin_import, name='admin_import'),
     path('settings/', views.admin_settings, name='admin_settings'),
     path('profile/', views.admin_profile, name='admin_profile'),
+    path('site-content/', views.admin_site_content, name='admin_site_content'),
+    path('site-content/update/', views.admin_update_site_settings, name='admin_update_site_settings'),
+    path('site-content/faqs/add/', views.admin_add_faq, name='admin_add_faq'),
+    path('site-content/faqs/<int:fid>/edit/', views.admin_edit_faq, name='admin_edit_faq'),
+    path('site-content/faqs/<int:fid>/delete/', views.admin_delete_faq, name='admin_delete_faq'),
     path('api/analytics/', views.api_analytics, name='api_analytics'),
 ]

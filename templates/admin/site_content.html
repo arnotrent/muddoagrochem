@@ -1,0 +1,81 @@
+{% extends "admin/base_admin.html" %}{% load icons %}
+{% block title %}Site Content{% endblock %}{% block page_icon %}{% icon "edit" %}{% endblock %}{% block page_heading %}Site Content{% endblock %}
+{% block content %}
+<div class="admin-card">
+  <div class="admin-card-header"><div class="admin-card-title">{% icon "building" %}Company Info</div></div>
+  <div class="admin-card-body">
+    <p style="font-size:.84rem;color:var(--text-3);margin-bottom:18px">These feed the About page, Contact page and the site footer directly — no code changes needed when they change.</p>
+    <form method="POST" action="{% url 'admin_update_site_settings' %}">{% csrf_token %}
+      <div class="rgrid-3" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+        <div class="admin-form-group"><label>Year Founded</label><input name="year_founded" class="admin-input" value="{{ site.year_founded }}" maxlength="4"></div>
+        <div class="admin-form-group"><label>Business Hours</label><input name="business_hours" class="admin-input" value="{{ site.business_hours }}"></div>
+        <div class="admin-form-group"><label>WhatsApp Number <span style="color:var(--text-3);font-weight:400">(digits only, e.g. 256772507582)</span></label><input name="whatsapp_number" class="admin-input" value="{{ site.whatsapp_number }}"></div>
+      </div>
+      <div class="rgrid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="admin-form-group"><label>Primary Phone</label><input name="company_phone" class="admin-input" value="{{ site.company_phone }}"></div>
+        <div class="admin-form-group"><label>Secondary Phone <span style="color:var(--text-3);font-weight:400">(optional)</span></label><input name="company_phone_secondary" class="admin-input" value="{{ site.company_phone_secondary }}"></div>
+      </div>
+      <div class="admin-form-group"><label>Email</label><input name="company_email" type="email" class="admin-input" value="{{ site.company_email }}"></div>
+      <div class="admin-form-group"><label>Address</label><input name="company_address" class="admin-input" value="{{ site.company_address }}"></div>
+      <div class="admin-form-group"><label>Facebook Page URL <span style="color:var(--text-3);font-weight:400">(optional)</span></label><input name="facebook_url" class="admin-input" value="{{ site.facebook_url }}"></div>
+      <button type="submit" class="btn-admin btn-primary-admin">{% icon "save" %}Save Company Info</button>
+    </form>
+  </div>
+</div>
+
+<div class="admin-card">
+  <div class="admin-card-header"><div class="admin-card-title">{% icon "plus-circle" %}Add FAQ</div></div>
+  <div class="admin-card-body">
+    <form method="POST" action="{% url 'admin_add_faq' %}">{% csrf_token %}
+      <div class="admin-form-group"><label>Question</label><input name="question" class="admin-input" required></div>
+      <div class="admin-form-group"><label>Answer</label><textarea name="answer" class="admin-input" rows="3" required></textarea></div>
+      <button type="submit" class="btn-admin btn-primary-admin">{% icon "plus" %}Add FAQ</button>
+    </form>
+  </div>
+</div>
+
+<div class="admin-card">
+  <div class="admin-card-header"><div class="admin-card-title">{% icon "question-circle" %}Manage FAQs ({{ faqs|length }})</div></div>
+  <div class="tbl-wrap"><table class="data-table"><thead><tr><th>Question</th><th>Status</th><th>Actions</th></tr></thead>
+  <tbody>{% for f in faqs %}<tr>
+    <td style="max-width:420px"><strong>{{ f.question }}</strong><br><small style="color:var(--text-3);font-size:.78rem">{{ f.answer|truncatechars:90 }}</small></td>
+    <td><span class="badge {% if f.active %}badge-active{% else %}badge-inactive{% endif %}">{% if f.active %}Visible{% else %}Hidden{% endif %}</span></td>
+    <td><div style="display:flex;gap:5px">
+      <button type="button" class="btn-admin btn-secondary-admin" style="padding:5px 9px;font-size:.76rem" onclick="openFaqModal({{ f.id }},'{{ f.question|escapejs }}','{{ f.answer|escapejs }}',{{ f.active|yesno:'true,false' }})">{% icon "edit" %}</button>
+      <form method="POST" action="{% url 'admin_delete_faq' f.id %}" style="display:inline" class="js-confirm-submit" data-confirm-title="Delete this FAQ?" data-confirm-body="&quot;{{ f.question|escapejs }}&quot; will be permanently removed.">{% csrf_token %}<button type="submit" class="btn-admin btn-danger-admin" style="padding:5px 9px;font-size:.76rem">{% icon "trash" %}</button></form>
+    </div></td>
+  </tr>{% empty %}<tr><td colspan="3" style="text-align:center;color:var(--text-3);padding:28px">No FAQs yet.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+
+<!-- EDIT FAQ MODAL -->
+<div id="editFaqModal" style="display:none;position:fixed;inset:0;background:rgba(8,10,9,.55);z-index:4000;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--bg-card);border-radius:18px;padding:28px;max-width:560px;width:100%;box-shadow:0 24px 70px rgba(0,0,0,.3);border:1.5px solid var(--border-color,var(--border))">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <h3 style="font-size:1.1rem;font-weight:800;color:var(--text-1);margin:0">{% icon "edit" style="color:var(--accent-blue);margin-right:8px" %}Edit FAQ</h3>
+      <button type="button" onclick="closeFaqModal()" style="background:none;border:none;cursor:pointer;color:var(--text-3);font-size:1.1rem">{% icon "times" %}</button>
+    </div>
+    <form method="POST" id="editFaqForm">{% csrf_token %}
+      <div class="admin-form-group"><label>Question</label><input name="question" id="faq_question" class="admin-input" required></div>
+      <div class="admin-form-group"><label>Answer</label><textarea name="answer" id="faq_answer" class="admin-input" rows="4" required></textarea></div>
+      <label style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:.86rem;margin-bottom:16px"><input type="checkbox" name="active" id="faq_active" style="width:auto"> Visible on the About page</label>
+      <div style="display:flex;gap:10px">
+        <button type="submit" class="btn-admin btn-primary-admin">{% icon "save" %}Save Changes</button>
+        <button type="button" onclick="closeFaqModal()" class="btn-admin btn-secondary-admin">{% icon "times" %}Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}<script>
+function openFaqModal(id, q, a, active){
+  document.getElementById('editFaqForm').action = '/admin-panel/site-content/faqs/' + id + '/edit/';
+  document.getElementById('faq_question').value = q;
+  document.getElementById('faq_answer').value = a;
+  document.getElementById('faq_active').checked = !!active;
+  document.getElementById('editFaqModal').style.display = 'flex';
+}
+function closeFaqModal(){ document.getElementById('editFaqModal').style.display = 'none'; }
+document.getElementById('editFaqModal').addEventListener('click', function(e){ if (e.target === this) closeFaqModal(); });
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeFaqModal(); });
+</script>{% endblock %}

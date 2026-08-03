@@ -1,7 +1,17 @@
 from django.conf import settings
+
 def global_context(request):
-    ctx={'ga_id':getattr(settings,'GA_MEASUREMENT_ID',''),'wa_number':getattr(settings,'WHATSAPP_NUMBER','256772507582'),
-         'company_phone':getattr(settings,'COMPANY_PHONE','+256 772 507582'),'company_email':getattr(settings,'COMPANY_EMAIL','muddoagro811@gmail.com'),
+    from apps.core.models import SiteSettings
+    site = SiteSettings.load()
+    ctx={'ga_id':getattr(settings,'GA_MEASUREMENT_ID',''),
+         'wa_number': site.whatsapp_number,
+         'year_founded': site.year_founded,
+         'company_phone': site.company_phone,
+         'company_phone_secondary': site.company_phone_secondary,
+         'company_email': site.company_email,
+         'company_address': site.company_address,
+         'business_hours': site.business_hours,
+         'facebook_url': site.facebook_url,
          'unread_count':0,'pending_count':0}
     if request.user.is_authenticated and request.user.is_staff:
         try:
