@@ -1,124 +1,90 @@
-# This update — copyright/nav fixes, editable site content, real duplicate-message fix, storage reliability, product photo display
+# This update — real avatar-upload fix, any-format attachments, product photo correction, About page image swap
 
 Drop into your repo at matching paths, then:
 
 ```bash
-pip install -r requirements.txt
 python manage.py migrate
 python manage.py collectstatic --noinput
 ```
 
-New migrations: `core/0003_sitesettings_faq.py` (schema) and
-`core/0004_seed_site_content.py` (data — copies your current FAQs and
-company details into the new editable tables, so nothing changes visually
-until you edit them in Admin → Site Content).
+No new migrations this round.
 
 ---
 
-## 1. Copyright + mobile nav
+## 1. Your security question — is it advisable to let admin edit FAQs/contact details?
 
-- Footer now reads "© {year} Muddo Agro Chemicals LTD. **All Rights
-  Reserved.** MAAIF-Registered Distributor."
-- **Staff Login removed from the mobile hamburger menu.** It's footer-only
-  now on every screen size — the mobile drawer only shows it if you're
-  *already* logged in (as your Admin Panel/Agent Portal + Logout links),
-  never as a login prompt for visitors.
+Yes, it's both normal and safe, for a specific reason: the risk isn't the
+*feature*, it's *who can reach it*. Every Site Content view is wrapped in
+`@staff_member_required`, so only accounts with `is_staff=True` can see or
+submit that page at all — a random visitor can't reach it no matter what
+they try, the same way they can't reach Products or Distributors. It's
+form-based, CSRF-protected, and goes through Django's ORM (no raw SQL, so
+no injection risk).
 
-## 2. Site content is now admin-editable
+The actual thing worth thinking about is **admin account hygiene**, which
+is true of this feature exactly as much as it's true of your whole admin
+panel already: if your one shared `admin` login is compromised, someone
+could change the phone number or email shown on the site — but they could
+just as easily delete every product or read every customer enquiry, since
+they already have full admin access at that point. The fix for that isn't
+restricting Site Content specifically, it's the general practice you
+probably already know: a strong, unique admin password, and — if more than
+one person manages the site — separate staff accounts per person instead
+of one shared login, so changes are attributable. Happy to add per-change
+audit logging (who changed what, when) as a small follow-up if you want a
+paper trail; I didn't add it by default since it's extra complexity you
+may not need for a small team.
 
-New **Admin → Site Content** page. Two things you can change without
-touching code:
-- **Company info**: year founded, phone (+ optional second number), email,
-  address, business hours, WhatsApp number, Facebook URL. These feed the
-  About page, Contact page, and the site footer directly.
-- **FAQs**: add, edit, hide, or delete — shown on the About page in the
-  order you set.
+## 2. Profile photo upload — the real cause found
 
-Your current hardcoded content was copied into the database automatically
-by the migration, so the site looks identical until you actually change
-something.
+You were right that it wasn't a persistence/consistency issue — it was a
+genuine upload failure. The code only accepted files ending in
+`.png/.jpg/.jpeg/.gif/.webp`; anything else was silently dropped with no
+error message, so it looked like nothing happened at all. The most likely
+real-world culprit: **iPhones save photos as `.HEIC` by default**, which
+wasn't on that list. Fixed two ways:
+- Broadened the accepted list (added `.bmp`, `.avif`, `.jfif`).
+- **HEIC/HEIF is still not accepted — deliberately** — almost no browser
+  except Safari can display it as an image, so accepting it would "work"
+  but the photo would look broken everywhere else anyway. Instead of
+  silently dropping it, you now get a clear message: *"that photo isn't a
+  supported format — please use JPG, PNG, GIF or WEBP"* (with a specific
+  note when it detects `.heic`/`.heif`, telling you to export as JPEG
+  first — every iPhone's share sheet can do this in two taps).
+- Same fix applied to product photo uploads (Add/Edit Product), which had
+  the identical silent-drop problem.
 
-## 3. The office-room banner photos
+## 3. Chat attachments — now genuinely any file format
 
-Swapped `banner_admin.png` / `banner_agent.png` for the two photos you
-specified — the rooms with the "MACL ADMIN"/"MACL AGENT" signage on the
-wall — replacing the flatter logo-plaque renders from last round.
+Removed the `accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"` restriction on
+the attach button entirely — it now accepts literally any file. On the
+server side, nothing was ever converting or re-encoding attachments — a
+`FileField` just stores the exact bytes you upload under their original
+extension, so files were always "sent in the same format they're received
+in"; that part was already correct. The image-above-text placement inside
+each bubble was already in place too (attachment renders before the
+caption). What's different now is simply: no format is blocked from being
+attached in the first place.
 
-## 4. Chat — the real duplicate-message cause, found
+## 4. Product card images — corrected back to fill the frame
 
-Every previous "duplicate message" symptom you've shown had one thing in
-common: an attachment, which takes longer to upload than plain text — and
-the Send button had no "busy" state. A second click (or a second Enter,
-easy to do when the UI looks unresponsive during upload) fired a second,
-genuinely separate POST to the server. That's not a rendering bug, it's
-really two messages. Fixed by disabling Send (and ignoring Enter) the
-moment a send starts, until it finishes.
+Last round's change (object-fit:contain + padding) left visible empty
+space around every photo, which wasn't what you wanted — sorry, overcorrected.
+Reverted to fill the card edge-to-edge (object-fit:cover, no padding); the
+piece that's still removed is the dark gradient overlay that used to wash
+the photo out, since that was the actual original complaint. Applied
+consistently to the product detail hero image and the quick-view modal too.
 
-## 5. Chat — messages hidden below the visible area
+## 5. About page — image swap
 
-Real cause: a classic flexbox gotcha. `.chat-msgs-wrap` had `flex:1;
-overflow-y:auto`, but its parent containers didn't have `min-height:0` —
-so instead of the message list scrolling *inside* a fixed-height box, the
-whole box grew to fit its content, pushing the newest messages below the
-viewport with nothing to scroll. Added `min-height:0` through the whole
-chain, and fixed the mobile chat layout specifically: it was using
-`height:auto` on small screens, which is the same problem in a more
-literal way. Now it uses a definite `calc(100vh - …)` height on mobile too.
+- Removed the trust/handshake photo from next to the "Who We Are" company
+  text — replaced with your new MACL wordmark banner in that spot instead.
+- The trust/handshake photo wasn't dropped — it now sits in its own strip
+  right below the hero intro ("Farming Uganda depends on, supplied
+  honestly."), before "Who We Are" begins, so it's still on the page, just
+  not crowding the company-details paragraph.
 
-## 6. Emoji picker
-
-A 🙂 button next to the attachment button opens a small emoji grid;
-picking one inserts it at the cursor position in the message box. Works
-for admin, agents, and the Team channel alike.
-
-## 7. Attachments/avatars — why they weren't really working, and what's fixed vs. what needs your input
-
-Two separate problems were stacked on top of each other:
-
-- **Django wasn't serving `/media/` at all in production** — this was
-  fixed two rounds ago (`urls.py` no longer gates media serving behind
-  `DEBUG`). If you hadn't redeployed that fix yet, this alone explains
-  broken images/avatars.
-- **Render's free-tier disk is ephemeral** — even with media serving
-  fixed, uploaded files disappear the next time the service restarts or
-  redeploys (Render's own documented behavior, not something code alone
-  can fix). This is very likely why you're still seeing broken images
-  even after redeploying — the file was there right after upload, then
-  gone after the service spun down or redeployed.
-
-This round adds **optional S3-backed storage** (`django-storages` +
-`boto3`, already in `requirements.txt`). Set these three environment
-variables on Render (`render.yaml` now lists them, `sync: false` so you
-fill them in from the dashboard) and uploads switch automatically to S3,
-surviving restarts:
-```
-AWS_ACCESS_KEY_ID
-AWS_SECRET_ACCESS_KEY
-AWS_STORAGE_BUCKET_NAME
-```
-Leave them unset and everything behaves exactly as before — nothing
-breaks, but uploads will keep disappearing on restart until you add an S3
-bucket (or a Render persistent disk, the paid alternative). I can't create
-the actual S3 bucket for you from here — that's an AWS account/console
-step — but the code is ready the moment you do.
-
-## 8. Product photos — now actually visible
-
-Root cause: `.product-card-img` used `object-fit:cover` in a 210px box —
-which crops tall, narrow bottle/sachet photos — plus a dark gradient sat
-across the bottom of every image, washing it out further. Product photos
-now use `object-fit:contain` against a neutral background with padding, so
-the whole pack shot is visible with nothing cropped or darkened; the image
-area is also taller (240px) for legibility. Same fix applied to the
-product detail page's hero image and the quick-view modal. Admin's product
-table thumbnails are now click-to-view-full-size and no longer crop either.
-
-## Still outstanding, flagged honestly
-
-- The S3 bucket itself needs to be created and its credentials added by
-  you (or by me in a future session if you'd like guided help) — I can't
-  provision AWS resources from this sandbox.
-- A few remaining hardcoded phone/email mentions elsewhere in the site
-  (e.g. the homepage's "Not Sure Which Product" CTA) weren't switched to
-  the new editable fields this round — only About, Contact, and the
-  footer were in scope for this pass. Happy to sweep the rest next time.
+If this isn't quite the placement you pictured, tell me exactly where
+you'd like each image and I'll move them precisely — "next to X" vs "in
+its own section above/below Y" are easy to get backwards from text alone,
+so no problem adjusting again.

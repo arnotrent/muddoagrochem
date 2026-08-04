@@ -14,6 +14,19 @@ from apps.requests_app.models import SupplyRequest
 from apps.messaging.models import Message
 from apps.distributors.models import Distributor
 
+# Browser-renderable image formats — HEIC/HEIF (default on most iPhones)
+# is deliberately excluded; almost no browser besides Safari can display
+# it as an <img>, so accepting it would "succeed" but look broken
+# everywhere else. See agent_profile's note for the user-facing message.
+ALLOWED_IMAGE_EXTS = ('png','jpg','jpeg','gif','webp','bmp','avif','jfif')
+
+def _ext_of(filename):
+    return filename.rsplit('.',1)[-1].lower() if '.' in filename else ''
+
+def _unsupported_image_msg(ext):
+    tail = ' (HEIC/HEIF from iPhone isn\u2019t viewable in most browsers \u2014 export as JPEG first.)' if ext in ('heic','heif') else ''
+    return f'That file (.{ext or "unknown"}) isn\u2019t a supported image format \u2014 please use JPG, PNG, GIF, WEBP or BMP.{tail}'
+
 @staff_member_required
 def admin_dashboard(request):
     stats={'total_products':Product.objects.count(),'total_distributors':Distributor.objects.count(),
@@ -44,7 +57,9 @@ def admin_add_product(request):
     img=None
     if 'product_image' in request.FILES:
         f=request.FILES['product_image']
-        if f.name.rsplit('.',1)[-1].lower() in ['png','jpg','jpeg','gif','webp']: img=f
+        ext = _ext_of(f.name)
+        if ext in ALLOWED_IMAGE_EXTS: img=f
+        else: messages.error(request, _unsupported_image_msg(ext))
     p=Product.objects.create(name=name,category=request.POST.get('category','other'),
         description=request.POST.get('description','').strip(),active_ingredient=request.POST.get('active_ingredient','').strip(),
         formulation=request.POST.get('formulation','').strip(),crops=request.POST.get('crops','').strip(),
@@ -71,8 +86,11 @@ def admin_edit_product(request, pid):
         p.image_url = request.POST.get('image_url').strip()
     if 'product_image' in request.FILES:
         f = request.FILES['product_image']
-        if f.name.rsplit('.', 1)[-1].lower() in ['png', 'jpg', 'jpeg', 'gif', 'webp']:
+        ext = _ext_of(f.name)
+        if ext in ALLOWED_IMAGE_EXTS:
             p.image_file = f
+        else:
+            messages.error(request, _unsupported_image_msg(ext))
     p.save()
     inv, _ = Inventory.objects.get_or_create(product=p, defaults={'stock_qty': 0})
     inv.stock_qty = int(request.POST.get('stock_qty', inv.stock_qty) or 0)
@@ -242,12 +260,19 @@ def admin_profile(request):
     profile, _ = StaffProfile.objects.get_or_create(user=request.user)
     if request.method == 'POST':
         profile.display_name = request.POST.get('display_name','').strip()
+        bad_ext = None
         if 'avatar' in request.FILES:
             f = request.FILES['avatar']
-            if f.name.rsplit('.',1)[-1].lower() in ('png','jpg','jpeg','gif','webp'):
+            ext = _ext_of(f.name)
+            if ext in ALLOWED_IMAGE_EXTS:
                 profile.avatar = f
+            else:
+                bad_ext = ext
         profile.save()
-        messages.success(request, 'Profile updated!')
+        if bad_ext is not None:
+            messages.error(request, f'Display name saved, but {_unsupported_image_msg(bad_ext)}')
+        else:
+            messages.success(request, 'Profile updated!')
         return redirect('admin_profile')
     return render(request,'admin/profile.html',{'profile':profile})
 

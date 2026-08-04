@@ -12,6 +12,17 @@ from apps.products.models import Product
 from apps.requests_app.models import SupplyRequest
 from apps.messaging.models import Message
 
+# Browser-renderable image formats — HEIC/HEIF (the default format on most
+# iPhones) is deliberately excluded because most browsers other than Safari
+# can't display it as an <img>, so "uploading" one would silently look
+# broken everywhere else. Anyone on iPhone needs to pick "Most Compatible"
+# in their camera/photo settings, or choose "Save as JPEG" when sharing the
+# photo, before uploading here.
+ALLOWED_IMAGE_EXTS = ('png','jpg','jpeg','gif','webp','bmp','avif','jfif')
+
+def _ext_of(filename):
+    return filename.rsplit('.',1)[-1].lower() if '.' in filename else ''
+
 def login_view(request):
     if request.user.is_authenticated:
         return redirect('admin_dashboard' if request.user.is_staff else 'agent_dashboard')
@@ -104,12 +115,19 @@ def agent_profile(request):
     agent = get_object_or_404(Agent, user=request.user)
     if request.method == 'POST':
         agent.display_name = request.POST.get('display_name','').strip()
+        bad_ext = None
         if 'avatar' in request.FILES:
             f = request.FILES['avatar']
-            if f.name.rsplit('.',1)[-1].lower() in ('png','jpg','jpeg','gif','webp'):
+            ext = _ext_of(f.name)
+            if ext in ALLOWED_IMAGE_EXTS:
                 agent.avatar = f
+            else:
+                bad_ext = ext
         agent.save()
-        messages.success(request, 'Profile updated!')
+        if bad_ext is not None:
+            messages.error(request, f'Display name saved, but that photo (.{bad_ext or "unknown"}) isn\u2019t a supported format \u2014 please use JPG, PNG, GIF, WEBP or BMP and try again.{" (HEIC/HEIF from iPhone isn\u2019t viewable in most browsers \u2014 export as JPEG first.)" if bad_ext in ("heic","heif") else ""}')
+        else:
+            messages.success(request, 'Profile updated!')
         return redirect('agent_profile')
     return render(request,'agent/profile.html',{'agent':agent})
 
