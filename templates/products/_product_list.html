@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static muddo_filters icons %}
 {% block nav_products %}active{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'css/products.css' %}">{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/products.css' %}"><link rel="stylesheet" href="{% static 'css/reviews.css' %}">{% endblock %}
 {% block title %}{{ page_title }} — Muddo Agro Chemicals LTD{% endblock %}
 {% block content %}
 <section class="page-hero" style="background-image:url('{{ hero_image }}')">
@@ -17,6 +17,16 @@
   </div>
 </section>
 <section class="section"><div class="container">
+  {% if gallery %}
+  <div class="field-gallery">
+    {% for g in gallery %}
+    <div class="field-gallery-item" onclick="window.open('{{ g.src }}','_blank')">
+      <img src="{{ g.src }}" alt="{{ g.alt }}" loading="lazy">
+      <div class="field-gallery-cap">{{ g.caption }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
   <div class="cat-tabs">
     {% for tab_title,tab_url,tab_icon in cat_tabs %}
     <a href="{% url tab_url %}" class="cat-tab {% if tab_title == page_title %}active{% endif %}">{% icon tab_icon %}{{ tab_title }}</a>
@@ -39,6 +49,7 @@
         <span class="product-tag tag-{{ p.category }}">{% if p.category == 'pesticide' %}{% icon "bug" %}{% elif p.category == 'herbicide' %}{% icon "seedling" %}{% elif p.category == 'fungicide' %}{% icon "microscope" %}{% else %}{% icon "boxes" %}{% endif %}{{ p.get_category_display }}</span>
         <h3>{{ p.name }}</h3>
         <p>{{ p.description|truncatewords:20 }}</p>
+        {% with rs=p.review_stats %}{% if rs.count %}<div style="font-size:.76rem;color:#f59e0b;font-weight:700;margin-bottom:8px">★ {{ rs.avg }} <span style="color:var(--text-3);font-weight:400">({{ rs.count }})</span></div>{% endif %}{% endwith %}
         <div class="spec-pills">
           {% if p.active_ingredient %}<div class="spec-pill"><strong>A.I.</strong>{{ p.active_ingredient|truncatewords:6 }}</div>{% endif %}
           {% if p.crops %}<div class="spec-pill">{% icon "leaf" %}{{ p.crops|truncatewords:5 }}</div>{% endif %}

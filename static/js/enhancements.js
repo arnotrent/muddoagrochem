@@ -21,7 +21,6 @@ window.toast = (function () {
   return { show, success: m => show(m, 'success'), error: m => show(m, 'error'), info: m => show(m, 'info') };
 })();
 
-// Lazy image fade-in
 if ('IntersectionObserver' in window) {
   const io = new IntersectionObserver(entries => {
     entries.forEach(en => {
@@ -35,7 +34,6 @@ if ('IntersectionObserver' in window) {
   document.querySelectorAll('img[loading="lazy"]').forEach(img => io.observe(img));
 }
 
-// Native form validation → shake + red border instead of silent failure
 document.querySelectorAll('form:not([novalidate])').forEach(form => {
   form.addEventListener('submit', e => {
     const invalids = form.querySelectorAll(':invalid');

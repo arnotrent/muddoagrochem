@@ -84,10 +84,6 @@
   <div class="mm-section">Contact Details</div>
   <a href="tel:{{ company_phone|cut:' '|cut:'/' }}" class="mm-link">{% icon "phone" %}{{ company_phone }}</a>
   <a href="mailto:{{ company_email }}" class="mm-link">{% icon "envelope" %}{{ company_email }}</a>
-  <!-- Staff Login is intentionally footer-only, even on mobile — it's a
-       rarely-used entry point for staff, not a customer-facing nav item,
-       so it doesn't belong in the primary hamburger menu. Already-logged-in
-       staff still get their portal + logout below. -->
   {% if request.user.is_authenticated %}
   <div class="mm-section">Staff</div>
     {% if request.user.is_staff %}<a href="{% url 'admin_dashboard' %}" class="mm-link" onclick="closeMenu()">{% icon "cog" %}Admin Panel</a>
@@ -111,7 +107,7 @@
 
 <main id="main-content">{% block content %}{% endblock %}</main>
 
-<!-- FOOTER — contact details live here too; Staff Login is footer-ONLY (never in the header or the mobile drawer) -->
+<!-- FOOTER -->
 <footer class="footer">
   <div class="container">
     <div class="rgrid-4" style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1.3fr;gap:40px;margin-bottom:40px">

@@ -2,6 +2,7 @@
 {% block title %}About Us — Muddo Agro{% endblock %}
 {% block nav_about %}active{% endblock %}
 {% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/reviews.css' %}">
 <style>
 .icon-badge{width:52px;height:52px;border-radius:14px;background:var(--bg-alt);color:var(--accent-blue);box-shadow:0 0 0 1px rgba(56,189,248,.18);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0}
 .about-product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:18px}
@@ -56,6 +57,27 @@
     </div>
   </div>
 </div></section>
+
+<!-- COMPANY LEADERSHIP -->
+{% if leadership %}
+<section class="section-alt"><div class="container">
+  <div class="section-header">
+    <div class="section-tag" style="margin-left:auto;margin-right:auto">{% icon "user-tie" %}Our Team</div>
+    <h2 class="section-title">Company Leadership</h2>
+    <p class="section-desc">The people behind MACL's day-to-day work with farmers, agents and distributors.</p>
+  </div>
+  <div class="leadership-grid">
+    {% for l in leadership %}
+    <div class="leader-card">
+      <div class="leader-photo">{% if l.photo_url %}<img src="{{ l.photo_url }}" alt="{{ l.name }}">{% else %}{{ l.name|first|upper }}{% endif %}</div>
+      <div class="leader-name">{{ l.name }}</div>
+      <div class="leader-title">{{ l.title }}</div>
+      {% if l.bio %}<p class="leader-bio">{{ l.bio }}</p>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div></section>
+{% endif %}
 
 <!-- WHAT WE DISTRIBUTE -->
 <section class="section-alt"><div class="container">

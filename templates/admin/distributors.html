@@ -80,7 +80,6 @@
   </div>
 </div>
 
-<!-- EDIT DISTRIBUTOR MODAL -->
 <div id="editDistributorModal" style="display:none;position:fixed;inset:0;background:rgba(8,10,9,.55);z-index:4000;align-items:center;justify-content:center;padding:20px">
   <div style="background:var(--bg-card);border-radius:18px;padding:28px;max-width:640px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,.3);border:1.5px solid var(--border-color,var(--border))">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
@@ -135,9 +134,6 @@ const COUNTRY_INFO = {
   'DR Congo':    {center:[-4.038,21.758],  zoom:5, iso:'cd'},
   'Other':       {center:[1.373,32.29],    zoom:3, iso:''},
 };
-// Same rough boxes used server-side (apps/analytics/views.py COUNTRY_BOUNDS) —
-// kept in sync manually. Used to LOCK panning/zooming to the chosen country
-// so the admin physically cannot drop a pin outside it.
 const COUNTRY_BOUNDS_LL = {
   'Uganda':      [[-1.50,29.50],[4.30,35.10]],
   'Kenya':       [[-4.90,33.90],[5.20,41.90]],
@@ -223,11 +219,8 @@ async function geocodeAndFly(prefix){
     const data = await res.json();
     if (data && data[0]) {
       st.map.setView([parseFloat(data[0].lat), parseFloat(data[0].lon)], 13);
-      // Tighten the lock further to the district/city's own bounding box,
-      // so once a place is located the admin can only place the pin inside
-      // that specific town rather than the whole country.
       if (data[0].boundingbox) {
-        const bb = data[0].boundingbox.map(parseFloat); // [south, north, west, east]
+        const bb = data[0].boundingbox.map(parseFloat);
         const districtBounds = L.latLngBounds([bb[0], bb[2]], [bb[1], bb[3]]).pad(0.4);
         st.map.setMaxBounds(districtBounds);
         const noteEl = document.getElementById(prefix + '_lockNote');

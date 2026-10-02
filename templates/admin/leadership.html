@@ -1,0 +1,55 @@
+{% extends "admin/base_admin.html" %}{% load icons %}
+{% block title %}Leadership{% endblock %}{% block page_icon %}{% icon "user-tie" %}{% endblock %}{% block page_heading %}Company Leadership{% endblock %}
+{% block content %}
+<div class="admin-card">
+  <div class="admin-card-header"><div class="admin-card-title">{% icon "plus-circle" %}Add Leadership Member</div></div>
+  <div class="admin-card-body">
+    <form method="POST" action="{% url 'admin_add_leader' %}" enctype="multipart/form-data">{% csrf_token %}
+      <div class="rgrid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="admin-form-group"><label>Full Name <span>*</span></label><input name="name" class="admin-input" required></div>
+        <div class="admin-form-group"><label>Title <span>*</span></label><input name="title" class="admin-input" placeholder="e.g. Managing Director" required></div>
+      </div>
+      <div class="admin-form-group"><label>Short Bio</label><textarea name="bio" class="admin-input" rows="2" maxlength="600"></textarea></div>
+      <div class="admin-form-group"><label>Photo</label><input name="photo" type="file" accept="image/*" class="admin-input"></div>
+      <button type="submit" class="btn-admin btn-primary-admin">{% icon "plus" %}Add</button>
+    </form>
+  </div>
+</div>
+<div class="admin-card"><div class="tbl-wrap">
+  <table class="data-table"><thead><tr><th></th><th>Name</th><th>Title</th><th>Status</th><th>Actions</th></tr></thead>
+  <tbody>{% for l in leaders %}<tr>
+    <td><div style="width:40px;height:40px;border-radius:50%;background:var(--accent-blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;overflow:hidden">{% if l.photo_url %}<img src="{{ l.photo_url }}" style="width:100%;height:100%;object-fit:cover">{% else %}{{ l.name|first|upper }}{% endif %}</div></td>
+    <td><strong>{{ l.name }}</strong></td>
+    <td style="font-size:.85rem;color:var(--text-3)">{{ l.title }}</td>
+    <td><span class="badge {% if l.active %}badge-active{% else %}badge-inactive{% endif %}">{% if l.active %}Visible{% else %}Hidden{% endif %}</span></td>
+    <td><div style="display:flex;gap:5px">
+      <button type="button" class="btn-admin btn-secondary-admin" style="padding:5px 9px;font-size:.76rem" onclick="openLeaderModal({{ l.id }},'{{ l.name|escapejs }}','{{ l.title|escapejs }}','{{ l.bio|escapejs }}',{{ l.active|yesno:'true,false' }})">{% icon "edit" %}</button>
+      <form method="POST" action="{% url 'admin_delete_leader' l.id %}" style="display:inline" class="js-confirm-submit" data-confirm-title="Remove this leadership member?" data-confirm-body="&quot;{{ l.name }}&quot; will be removed from the About page.">{% csrf_token %}<button class="btn-admin btn-danger-admin" style="padding:5px 9px;font-size:.76rem">{% icon "trash" %}</button></form>
+    </div></td>
+  </tr>{% empty %}<tr><td colspan="5" style="text-align:center;color:var(--text-3);padding:28px">No leadership members yet.</td></tr>{% endfor %}</tbody>
+  </table>
+</div></div>
+
+<div id="editLeaderModal" style="display:none;position:fixed;inset:0;background:rgba(8,10,9,.55);z-index:4000;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--bg-card);border-radius:18px;padding:28px;max-width:520px;width:100%;box-shadow:0 24px 70px rgba(0,0,0,.3);border:1.5px solid var(--border)">
+    <h3 style="font-size:1.1rem;font-weight:800;margin:0 0 18px">{% icon "edit" style="color:var(--accent-blue);margin-right:8px" %}Edit Leadership Member</h3>
+    <form method="POST" id="editLeaderForm" enctype="multipart/form-data">{% csrf_token %}
+      <div class="admin-form-group"><label>Full Name</label><input name="name" id="ld_name" class="admin-input" required></div>
+      <div class="admin-form-group"><label>Title</label><input name="title" id="ld_title" class="admin-input" required></div>
+      <div class="admin-form-group"><label>Bio</label><textarea name="bio" id="ld_bio" class="admin-input" rows="3"></textarea></div>
+      <div class="admin-form-group"><label>Replace Photo</label><input name="photo" type="file" accept="image/*" class="admin-input"></div>
+      <label style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:.86rem;margin-bottom:16px"><input type="checkbox" name="active" id="ld_active" style="width:auto"> Visible on About page</label>
+      <div style="display:flex;gap:10px"><button type="submit" class="btn-admin btn-primary-admin">{% icon "save" %}Save</button><button type="button" onclick="document.getElementById('editLeaderModal').style.display='none'" class="btn-admin btn-secondary-admin">{% icon "times" %}Cancel</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}<script>
+function openLeaderModal(id,name,title,bio,active){
+  document.getElementById('editLeaderForm').action='/admin-panel/leadership/'+id+'/edit/';
+  document.getElementById('ld_name').value=name; document.getElementById('ld_title').value=title;
+  document.getElementById('ld_bio').value=bio; document.getElementById('ld_active').checked=!!active;
+  document.getElementById('editLeaderModal').style.display='flex';
+}
+document.getElementById('editLeaderModal').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.style.display='none'});
+</script>{% endblock %}

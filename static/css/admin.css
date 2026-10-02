@@ -13,7 +13,6 @@
 .sidebar-badge { margin-left:auto; min-width:20px; height:20px; padding:0 6px; border-radius:var(--r-badge); font-size:.6rem; font-weight:700; display:inline-flex; align-items:center; justify-content:center; }
 .sidebar-footer { border-top:1px solid rgba(255,255,255,.08); padding:10px 8px; }
 
-/* Backdrop shown behind the sidebar when it's opened as a mobile drawer */
 body:has(.admin-sidebar.mobile-open)::before {
   content:''; position:fixed; inset:0; background:rgba(8,10,9,.5); z-index:1999;
 }
@@ -27,7 +26,8 @@ body:has(.admin-sidebar.mobile-open)::before {
 .admin-topbar-title i { width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:.88rem; background:var(--bg-alt); color:var(--accent-blue); }
 .admin-content { padding:26px; flex:1; }
 
-.kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
+.kpi-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:16px; margin-bottom:24px; }
+@media (max-width:1200px){ .kpi-grid{ grid-template-columns:repeat(3,1fr); } }
 .kpi-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--r-card); padding:22px; transition:transform var(--dur), box-shadow var(--dur); }
 .kpi-card:hover { transform:translateY(-3px); box-shadow:var(--sh-md); }
 .kpi-icon { width:46px; height:46px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:1.05rem; margin-bottom:16px; background:var(--bg-alt); color:var(--accent-blue); }
@@ -69,14 +69,6 @@ textarea.admin-input { resize:vertical; min-height:80px; }
 [data-theme="dark"] .flash-success { color: var(--accent-green); }
 .flash-error { background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.3); color:var(--accent-red); }
 
-/* ══════════════════════════════════════════════════════════
-   CHAT — v6
-   min-height:0 on every nested flex container below is the actual
-   fix for "messages stuck below the visible area, not scrolling":
-   without it, a flex child with flex:1 can refuse to shrink below its
-   content's natural height, so the *page* grows instead of the
-   message list scrolling internally.
-══════════════════════════════════════════════════════════ */
 .chat-layout { display:grid; grid-template-columns:300px 1fr; border:1px solid var(--border); border-radius:var(--r-card); overflow:hidden; background:var(--bg-card); height:calc(100vh - 148px); min-height:480px; box-shadow:var(--sh-sm); }
 .chat-sidebar-panel { border-right:1px solid var(--border); overflow-y:auto; background:var(--bg-alt); display:flex; flex-direction:column; min-height:0; }
 .chat-search-row { padding:10px 14px; border-bottom:1px solid var(--border); background:var(--bg-card); }
@@ -138,9 +130,6 @@ textarea.admin-input { resize:vertical; min-height:80px; }
 .msg-reply-btn { width:28px; height:28px; border-radius:50%; border:1px solid var(--border); background:var(--bg-card); color:var(--text-3); display:flex; align-items:center; justify-content:center; cursor:pointer; }
 .msg-reply-btn:hover { border-color:var(--accent-blue); color:var(--accent-blue); }
 
-.msg-attachment-img { max-width:220px; max-height:220px; border-radius:10px; display:block; margin-bottom:6px; object-fit:cover; }
-.msg-attachment-file { display:flex; align-items:center; gap:8px; padding:8px 12px; border-radius:10px; background:rgba(255,255,255,.15); margin-bottom:6px; font-size:.82rem; font-weight:600; text-decoration:none; color:inherit; }
-.msg-row.received .msg-attachment-file { background:var(--bg-alt); }
 .msg-tick-seen { color:#7dd3fc; }
 .msg-row.received .msg-time { color:var(--text-3); }
 
@@ -150,16 +139,10 @@ textarea.admin-input { resize:vertical; min-height:80px; }
 .reply-bar-preview { color:var(--text-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:70vw; }
 .reply-bar-inner button { background:none; border:none; cursor:pointer; color:var(--text-3); flex-shrink:0; }
 
-.chat-attach-preview { display:none; align-items:center; gap:8px; padding:8px 18px; border-top:1px solid var(--border); background:var(--bg-alt); font-size:.8rem; flex-shrink:0; }
-.attach-preview-thumb { width:34px; height:34px; border-radius:8px; object-fit:cover; }
-.attach-preview-name { flex:1; color:var(--text-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.chat-attach-preview button { background:none; border:none; cursor:pointer; color:var(--text-3); }
-
 .chat-attach-btn { width:40px; height:40px; border-radius:50%; border:1px solid var(--border); background:var(--bg-alt); color:var(--text-2); display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; font-size:1rem; }
 .chat-attach-btn:hover { border-color:var(--accent-blue); color:var(--accent-blue); }
 .chat-attach-btn:disabled, .btn-admin:disabled { opacity:.5; cursor:not-allowed; }
 
-/* Emoji picker */
 .chat-emoji-panel { display:none; position:absolute; bottom:48px; left:0; width:220px; max-height:220px; overflow-y:auto; background:var(--bg-card); border:1px solid var(--border); border-radius:14px; box-shadow:var(--sh-lg); padding:8px; grid-template-columns:repeat(6,1fr); gap:2px; z-index:50; }
 .chat-emoji-panel.open { display:grid; }
 .emoji-item { background:none; border:none; cursor:pointer; font-size:1.2rem; padding:6px; border-radius:8px; line-height:1; }

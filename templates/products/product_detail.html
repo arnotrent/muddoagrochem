@@ -2,11 +2,15 @@
 {% load static icons %}
 {% block nav_products %}active{% endblock %}
 {% block title %}{{ product.name }} — Muddo Agro Chemicals LTD{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'css/products.css' %}">
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/products.css' %}"><link rel="stylesheet" href="{% static 'css/reviews.css' %}">
 <style>
 .detail-grid{display:grid;grid-template-columns:1fr 1.55fr;gap:48px;align-items:start}
 .detail-img{border-radius:18px;overflow:hidden;border:1px solid var(--border);background:var(--bg-alt);aspect-ratio:4/3;position:sticky;top:80px}
 .detail-img img{width:100%;height:100%;object-fit:cover}
+.detail-thumbs{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;position:sticky;top:calc(80px + 1px)}
+.detail-thumb{width:58px;height:58px;border-radius:9px;overflow:hidden;border:2px solid var(--border);cursor:pointer;background:var(--bg-alt);flex-shrink:0}
+.detail-thumb img{width:100%;height:100%;object-fit:cover}
+.detail-thumb.active{border-color:var(--accent-blue)}
 .spec-table{width:100%;border-collapse:collapse;border-radius:12px;overflow:hidden;border:1px solid var(--border)}
 .spec-table thead{background:var(--bg-deep)}.spec-table th{padding:12px 16px;text-align:left;color:rgba(255,255,255,.7);font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
 .spec-table td:first-child{background:var(--bg-alt);font-size:.82rem;font-weight:700;color:var(--text-3);width:38%;padding:12px 16px;border-bottom:1px solid var(--border)}
@@ -25,7 +29,13 @@
 <section class="section" style="padding-top:36px"><div class="container">
   <div class="detail-grid">
     <div>
-      <div class="detail-img"><img src="{{ product.display_image }}" alt="{{ product.name }}" onerror="this.src='{% static 'images/products_all.jpg' %}'"></div>
+      <div class="detail-img"><img id="detailMainImg" src="{{ product.display_image }}" alt="{{ product.name }}" onerror="this.src='{% static 'images/products_all.jpg' %}'"></div>
+      {% if gallery %}
+      <div class="detail-thumbs">
+        <div class="detail-thumb active" onclick="swapDetailImg(this,'{{ product.display_image|escapejs }}')"><img src="{{ product.display_image }}" alt=""></div>
+        {% for g in gallery %}<div class="detail-thumb" onclick="swapDetailImg(this,'{{ g.display_url|escapejs }}')"><img src="{{ g.display_url }}" alt="{{ g.caption }}"></div>{% endfor %}
+      </div>
+      {% endif %}
       <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">
         <a href="{% url 'contact' %}?subject=Product+Enquiry+{{ product.name|urlencode }}" class="act-btn btn-primary">{% icon "envelope" %}Enquire Now</a>
         <a href="https://wa.me/{{ wa_number }}?text=Hello%20MACL%2C%20I%20am%20interested%20in%20{{ product.name|urlencode }}" target="_blank" class="act-btn" style="background:var(--accent-green);color:#0F172A">{% icon "whatsapp" %}WhatsApp Order</a>
@@ -39,6 +49,7 @@
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
         {% if product.stock_qty == 0 %}<span class="stock-badge stock-out" style="position:static;display:inline-flex">{% icon "times-circle" %}Out of Stock</span>{% elif product.stock_qty <= 10 %}<span class="stock-badge stock-low" style="position:static;display:inline-flex">{% icon "exclamation-circle" %}Low Stock</span>{% else %}<span class="stock-badge stock-in" style="position:static;display:inline-flex">{% icon "check-circle" %}In Stock</span>{% endif %}
         <span style="font-size:.78rem;color:var(--text-3);background:var(--bg-alt);padding:5px 12px;border-radius:var(--r-badge);border:1px solid var(--border)">MAAIF Registered</span>
+        {% if review_stats.count %}<a href="#reviews" style="font-size:.78rem;color:#f59e0b;font-weight:700;background:rgba(245,158,11,.1);padding:5px 12px;border-radius:var(--r-badge);text-decoration:none">★ {{ review_stats.avg }} ({{ review_stats.count }} review{{ review_stats.count|pluralize }})</a>{% endif %}
       </div>
       <h1 style="font-size:clamp(1.6rem,3vw,2.3rem);margin:0 0 14px;line-height:1.15">{{ product.name }}</h1>
       {% if product.description %}<p style="font-size:1rem;line-height:1.82;color:var(--text-2);margin-bottom:24px;border-left:3px solid var(--accent-blue);padding-left:16px">{{ product.description }}</p>{% endif %}
@@ -56,6 +67,65 @@
       </div>
     </div>
   </div>
+
+  <!-- ═══ REVIEWS ═══ -->
+  <div id="reviews" style="margin-top:64px;scroll-margin-top:90px">
+    <div class="section-header" style="margin-bottom:28px;text-align:left"><div class="section-tag">{% icon "star" %}Customer Reviews</div><h2 class="section-title">What Farmers Say About {{ product.name }}</h2></div>
+    <div class="reviews-layout">
+      <div class="reviews-summary-card">
+        <div class="rsum-score">{{ review_stats.avg|default:"—" }}</div>
+        <div class="rsum-stars">{% for i in stars %}<span class="star {% if i <= review_stats.avg %}filled{% endif %}">★</span>{% endfor %}</div>
+        <div class="rsum-count">{{ review_stats.count }} review{{ review_stats.count|pluralize }}</div>
+        <div class="rsum-bars">
+          {% for b in review_bars %}
+          <div class="rsum-bar-row"><span>{{ b.star }}★</span><div class="rsum-bar-track"><div class="rsum-bar-fill" style="width:{{ b.pct }}%"></div></div><span class="rsum-bar-n">{{ b.n }}</span></div>
+          {% endfor %}
+        </div>
+        <a href="#write-review" class="btn-primary" style="justify-content:center;margin-top:16px;width:100%">{% icon "edit" %}Write a Review</a>
+      </div>
+      <div class="reviews-list">
+        {% for r in reviews %}
+        <div class="review-card">
+          <div class="review-card-head">
+            <div class="review-avatar">{{ r.name|first|upper }}</div>
+            <div><div class="review-name">{{ r.name }}{% if r.location %} <span class="review-loc">· {{ r.location }}</span>{% endif %}</div>
+              <div class="review-stars">{% for i in stars %}<span class="star {% if i <= r.rating %}filled{% endif %}">★</span>{% endfor %}</div></div>
+            <div class="review-date">{{ r.created_at|date:"d M Y" }}</div>
+          </div>
+          {% if r.title %}<div class="review-title">{{ r.title }}</div>{% endif %}
+          <p class="review-comment">{{ r.comment }}</p>
+        </div>
+        {% empty %}
+        <div class="empty-state" style="padding:40px 20px">{% icon "comments" %}<h3>No reviews yet</h3><p>Be the first Ugandan farmer to review {{ product.name }}.</p></div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div id="write-review" class="write-review-card" style="scroll-margin-top:90px">
+      <h3 style="font-size:1.1rem;margin-bottom:4px">{% icon "edit" style="color:var(--accent-blue)" %}Write a Review</h3>
+      <p style="font-size:.84rem;color:var(--text-3);margin-bottom:20px">Your review is checked by our team before it appears publicly — usually within a day.</p>
+      <form method="POST" action="{% url 'submit_review' product.id %}" novalidate>{% csrf_token %}
+        <input type="hidden" name="form_token" value="{{ review_token }}">
+        <div style="position:absolute;left:-9999px" aria-hidden="true"><label>Leave blank<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+        <div class="stack-mobile" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div style="margin-bottom:16px"><label>Your Name *</label><input type="text" name="name" value="{{ review_form.name }}" maxlength="80" required>{% if review_errors.name %}<div class="field-error">{{ review_errors.name }}</div>{% endif %}</div>
+          <div style="margin-bottom:16px"><label>District / Location</label><input type="text" name="location" value="{{ review_form.location }}" maxlength="80">{% if review_errors.location %}<div class="field-error">{{ review_errors.location }}</div>{% endif %}</div>
+        </div>
+        <div style="margin-bottom:16px"><label>Email <span style="font-weight:400;color:var(--text-3)">(optional, never published)</span></label><input type="email" name="email" value="{{ review_form.email }}">{% if review_errors.email %}<div class="field-error">{{ review_errors.email }}</div>{% endif %}</div>
+        <div style="margin-bottom:16px"><label>Your Rating *</label>
+          <div class="star-picker" id="starPicker">
+            {% for i in stars %}<button type="button" class="star-pick" data-val="{{ i }}">★</button>{% endfor %}
+          </div>
+          <input type="hidden" name="rating" id="ratingInput" value="{{ review_form.rating }}">
+          {% if review_errors.rating %}<div class="field-error">{{ review_errors.rating }}</div>{% endif %}
+        </div>
+        <div style="margin-bottom:16px"><label>Review Title</label><input type="text" name="title" value="{{ review_form.title }}" maxlength="100">{% if review_errors.title %}<div class="field-error">{{ review_errors.title }}</div>{% endif %}</div>
+        <div style="margin-bottom:22px"><label>Your Review *</label><textarea name="comment" rows="4" maxlength="1500" required>{{ review_form.comment }}</textarea>{% if review_errors.comment %}<div class="field-error">{{ review_errors.comment }}</div>{% endif %}</div>
+        <button type="submit" class="btn-primary">{% icon "paper-plane" %}Submit Review</button>
+      </form>
+    </div>
+  </div>
+
   {% if related %}
   <div style="margin-top:64px">
     <div class="section-header" style="margin-bottom:28px;text-align:left"><div class="section-tag">{% icon "layer-group" %}Related</div><h2 class="section-title">More {{ product.get_category_display }}s</h2></div>
@@ -72,4 +142,26 @@
     </div>
   </div>{% endif %}
 </div></section>
+{% endblock %}
+{% block extra_js %}
+<script>
+function swapDetailImg(el,src){
+  document.getElementById('detailMainImg').src = src;
+  document.querySelectorAll('.detail-thumb').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+}
+(function(){
+  const picker=document.getElementById('starPicker'); if(!picker) return;
+  const input=document.getElementById('ratingInput');
+  const stars=[...picker.querySelectorAll('.star-pick')];
+  function paint(v){ stars.forEach(s=>s.classList.toggle('active', parseInt(s.dataset.val,10)<=v)); }
+  paint(parseInt(input.value||'0',10));
+  stars.forEach(s=>{
+    s.addEventListener('mouseenter',()=>paint(parseInt(s.dataset.val,10)));
+    s.addEventListener('click',()=>{input.value=s.dataset.val;paint(parseInt(s.dataset.val,10));});
+  });
+  picker.addEventListener('mouseleave',()=>paint(parseInt(input.value||'0',10)));
+  {% if review_errors %}document.getElementById('write-review').scrollIntoView({behavior:'smooth',block:'start'});{% endif %}
+})();
+</script>
 {% endblock %}

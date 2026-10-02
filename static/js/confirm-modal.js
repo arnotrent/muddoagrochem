@@ -1,20 +1,3 @@
-/* ═══════════════════════════════════════════════════════════════
-   MUDDO AGRO — CONFIRM MODAL
-   Replaces native confirm() with a proper on-brand modal.
-
-   USAGE — on any form that currently has onsubmit="return confirm('...')":
-     <form method="POST" action="..."
-           class="js-confirm-submit"
-           data-confirm-title="Delete this product?"
-           data-confirm-body="This can't be undone. '{{ p.name }}' will be
-             permanently removed from the catalogue.">
-       {% csrf_token %}
-       <button type="submit">...</button>
-     </form>
-   Just remove the old onsubmit="return confirm(...)" attribute and add
-   class="js-confirm-submit" + the two data- attributes instead.
-   ═══════════════════════════════════════════════════════════════ */
-
 (function () {
   "use strict";
 

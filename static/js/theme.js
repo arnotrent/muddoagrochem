@@ -28,10 +28,6 @@
   window.toggleTheme = toggle;
   window.getCurrentTheme = getStored;
 
-  // ── MOBILE SIDEBAR TOGGLE (admin panel + agent portal) ───────────
-  // Both use the shared `.admin-sidebar` component, which is hidden by
-  // default under ~767px (see responsive.css). Any element carrying
-  // [data-sidebar-toggle] flips it open as a slide-over panel.
   function initSidebarToggle() {
     document.querySelectorAll('[data-sidebar-toggle]').forEach(btn => {
       btn.addEventListener('click', e => {

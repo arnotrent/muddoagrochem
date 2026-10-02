@@ -40,7 +40,9 @@
     <table class="data-table" id="pt"><thead><tr><th style="width:56px"></th><th>Product</th><th>Category</th><th>Active Ingredient</th><th>Pack Sizes</th><th>Stock</th><th>Actions</th></tr></thead>
     <tbody>{% for p in products %}<tr data-search="{{ p.name|lower }} {{ p.active_ingredient|lower }} {{ p.category }}">
       <td><a href="{{ p.display_image }}" target="_blank" title="View full image"><img src="{{ p.display_image }}" style="width:48px;height:48px;object-fit:contain;background:var(--bg-alt);border:1px solid var(--border-color,var(--border));border-radius:8px;padding:3px" onerror="this.style.display='none'"></a></td>
-      <td><strong>{{ p.name }}</strong>{% if p.description %}<br><small style="color:var(--text-muted);font-size:.76rem">{{ p.description|truncatechars:55 }}</small>{% endif %}</td>
+      <td><strong>{{ p.name }}</strong>{% if p.description %}<br><small style="color:var(--text-muted);font-size:.76rem">{{ p.description|truncatechars:55 }}</small>{% endif %}
+        {% if p.gallery.count %}<br><small style="color:var(--accent-blue);font-size:.72rem">{% icon "th-large" %}{{ p.gallery.count }} gallery photo{{ p.gallery.count|pluralize }}</small>{% endif %}
+      </td>
       <td><span class="badge {% if p.category == 'pesticide' %}badge-denied{% elif p.category == 'herbicide' %}badge-approved{% elif p.category == 'fungicide' %}badge-new{% else %}badge-pending{% endif %}">{{ p.get_category_display }}</span></td>
       <td style="font-size:.82rem;color:var(--text-muted)">{{ p.active_ingredient|default:"—"|truncatechars:40 }}</td>
       <td style="font-size:.82rem">{{ p.packing|default:"—" }}</td>
@@ -48,6 +50,7 @@
       <td><div style="display:flex;gap:5px">
         <a href="{{ p.get_absolute_url }}" target="_blank" class="btn-admin btn-secondary-admin" style="padding:5px 9px;font-size:.76rem">{% icon "eye" %}</a>
         <a href="{% url 'product_spec_sheet' p.id %}" target="_blank" class="btn-admin btn-secondary-admin" style="padding:5px 9px;font-size:.76rem">{% icon "file-pdf" %}</a>
+        <button type="button" class="btn-admin btn-secondary-admin" style="padding:5px 9px;font-size:.76rem" onclick="openGalleryModal({{ p.id }},'{{ p.name|escapejs }}')">{% icon "th-large" %}</button>
         <button type="button" class="btn-admin btn-secondary-admin" style="padding:5px 9px;font-size:.76rem" onclick="openEditModal({{ p.id }},'{{ p.name|escapejs }}','{{ p.category }}','{{ p.active_ingredient|escapejs }}','{{ p.formulation|escapejs }}','{{ p.crops|escapejs }}','{{ p.dosage|escapejs }}','{{ p.packing|escapejs }}','{{ p.description|escapejs }}',{{ p.stock_qty }},'{{ p.display_image|escapejs }}')">{% icon "edit" %}</button>
         <form method="POST" action="{% url 'admin_delete_product' p.id %}" style="display:inline" class="js-confirm-submit" data-confirm-title="Delete this product?" data-confirm-body="&quot;{{ p.name }}&quot; will be permanently removed from the catalogue. This can't be undone.">{% csrf_token %}<button type="submit" class="btn-admin btn-danger-admin" style="padding:5px 9px;font-size:.76rem">{% icon "trash" %}</button></form>
       </div></td>
@@ -93,8 +96,29 @@
   </div>
 </div>
 
+<!-- PHOTO GALLERY MODAL -->
+<div id="galleryModal" style="display:none;position:fixed;inset:0;background:rgba(8,10,9,.55);z-index:4000;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--bg-card);border-radius:18px;padding:28px;max-width:640px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,.3);border:1.5px solid var(--border-color)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <h3 id="gal_title" style="font-size:1.1rem;font-weight:800;margin:0">{% icon "th-large" style="color:var(--accent-blue);margin-right:8px" %}Photo Gallery</h3>
+      <button type="button" onclick="document.getElementById('galleryModal').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1.1rem">{% icon "times" %}</button>
+    </div>
+    <div id="gal_grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;margin-bottom:20px"></div>
+    <form id="gal_addForm" method="POST" enctype="multipart/form-data">{% csrf_token %}
+      <div class="rgrid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="admin-form-group"><label>Upload Photo</label><input name="image_file" type="file" accept="image/*" class="admin-input"></div>
+        <div class="admin-form-group"><label>Or Image URL</label><input name="image_url" class="admin-input" placeholder="https:// or /static/images/…"></div>
+      </div>
+      <div class="admin-form-group"><label>Caption (optional)</label><input name="caption" class="admin-input" maxlength="200"></div>
+      <button type="submit" class="btn-admin btn-primary-admin">{% icon "plus" %}Add Photo</button>
+    </form>
+  </div>
+</div>
 {% endblock %}
 {% block extra_js %}<script>
+const GAL_DATA = {};
+{% for p in products %}GAL_DATA[{{ p.id }}] = [{% for g in p.gallery.all %}{id:{{ g.id }},url:"{{ g.display_url|escapejs }}",caption:"{{ g.caption|escapejs }}"}{% if not forloop.last %},{% endif %}{% endfor %}];{% endfor %}
+
 function previewImage(inputId, imgId, iconId){
   const input = document.getElementById(inputId);
   const img = document.getElementById(imgId);
@@ -134,5 +158,22 @@ function openEditModal(id,name,cat,ai,form,crops,dosage,packing,desc,stock,image
 }
 function closeEditModal(){document.getElementById('editProductModal').style.display='none'}
 document.getElementById('editProductModal').addEventListener('click',function(e){if(e.target===this)closeEditModal()});
-document.addEventListener('keydown',function(e){if(e.key==='Escape')closeEditModal()});
+
+function openGalleryModal(pid,name){
+  document.getElementById('gal_title').textContent = 'Photo Gallery — ' + name;
+  document.getElementById('gal_addForm').action = '/admin-panel/products/' + pid + '/photos/add/';
+  const grid = document.getElementById('gal_grid');
+  const items = GAL_DATA[pid] || [];
+  grid.innerHTML = items.length ? items.map(g => `
+    <div style="position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:var(--bg-alt)">
+      <img src="${g.url}" style="width:100%;height:80px;object-fit:cover;display:block" onerror="this.style.opacity=0.3">
+      <form method="POST" action="/admin-panel/products/photos/${g.id}/delete/" style="position:absolute;top:4px;right:4px">
+        <input type="hidden" name="csrfmiddlewaretoken" value="${document.querySelector('[name=csrfmiddlewaretoken]').value}">
+        <button type="submit" style="width:22px;height:22px;border-radius:50%;background:rgba(15,23,42,.75);color:#fff;border:none;cursor:pointer;font-size:.7rem;line-height:1">✕</button>
+      </form>
+    </div>`).join('') : '<p style="grid-column:1/-1;color:var(--text-3);font-size:.85rem;text-align:center;padding:20px 0">No extra photos yet — add one below.</p>';
+  document.getElementById('galleryModal').style.display='flex';
+}
+document.getElementById('galleryModal').addEventListener('click',function(e){if(e.target===this)this.style.display='none'});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeEditModal();document.getElementById('galleryModal').style.display='none'}});
 </script>{% endblock %}

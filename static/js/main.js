@@ -1,7 +1,6 @@
 (function () {
   "use strict";
 
-  // ── SCROLL PROGRESS BAR ──────────────────────────────
   const prog = document.querySelector('.scroll-progress');
   if (prog) {
     window.addEventListener('scroll', () => {
@@ -10,11 +9,9 @@
     }, { passive: true });
   }
 
-  // ── NAVBAR SHADOW ────────────────────────────────────
   const navbar = document.getElementById('navbar');
   if (navbar) window.addEventListener('scroll', () => navbar.classList.toggle('scrolled', window.scrollY > 20), { passive: true });
 
-  // ── HAMBURGER / MOBILE DRAWER ────────────────────────
   const hamburger = document.getElementById('hamburger');
   const mobileMenu = document.getElementById('mobileMenu');
   function closeMenu() {
@@ -34,7 +31,6 @@
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
   window.closeMenu = closeMenu;
 
-  // ── SCROLL REVEAL ────────────────────────────────────
   const reveals = document.querySelectorAll('[data-reveal]');
   if (reveals.length && 'IntersectionObserver' in window) {
     const io = new IntersectionObserver(entries => {
@@ -49,14 +45,12 @@
     reveals.forEach(el => io.observe(el));
   }
 
-  // ── BACK TO TOP ──────────────────────────────────────
   const btt = document.getElementById('backToTop');
   if (btt) {
     window.addEventListener('scroll', () => btt.classList.toggle('show', window.scrollY > 400), { passive: true });
     btt.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
   }
 
-  // ── COUNT-UP STATS ───────────────────────────────────
   function animateCount(el) {
     const target = parseInt(el.dataset.target || el.textContent, 10);
     if (isNaN(target)) return;
@@ -74,7 +68,6 @@
     io.observe(el);
   });
 
-  // ── GLOBAL SEARCH SUGGEST ────────────────────────────
   const searchInput = document.getElementById('globalSearchInput');
   const searchBox = document.getElementById('searchSuggestions');
   if (searchInput && searchBox) {
@@ -96,7 +89,6 @@
     document.addEventListener('click', e => { if (!searchInput.closest('form')?.contains(e.target)) { searchBox.innerHTML = ''; searchBox.style.display = 'none'; } });
   }
 
-  // ── QUICK VIEW MODAL (product cards) ─────────────────
   window.openModal = function (d) {
     const o = document.getElementById('modalOverlay'); if (!o) return;
     document.getElementById('modalImg').src = d.img || '';
@@ -124,7 +116,6 @@
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') window.closeModal(); });
 
-  // ── NEWSLETTER ───────────────────────────────────────
   function getCookie(name) { const m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)')); return m ? decodeURIComponent(m[1]) : ''; }
   document.getElementById('nlForm')?.addEventListener('submit', async function (e) {
     e.preventDefault();
@@ -140,7 +131,6 @@
     } catch { btn.innerHTML = orig; }
   });
 
-  // ── STICKY NAV SHADOW (fallback id) ──────────────────
   const nav = document.querySelector('.navbar');
   if (nav) window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 10), { passive: true });
 })();

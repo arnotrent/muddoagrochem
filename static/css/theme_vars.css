@@ -1,15 +1,7 @@
-/* ═══════════════════════════════════════════════════════════
-   MUDDO AGRO — THEME VARIABLES  v8  "SPEC-EXACT"
-   Built directly from themes.txt. Every hex value below is taken
-   verbatim from that spec — nothing approximated.
-═══════════════════════════════════════════════════════════ */
-
 :root {
-  /* ── FONTS — Inter throughout, per spec ─────────────── */
   --font-heading: 'Inter', -apple-system, 'Segoe UI', sans-serif;
   --font-body:    'Inter', -apple-system, 'Segoe UI', sans-serif;
 
-  /* ── LIGHT THEME SURFACES ────────────────────────────── */
   --bg:        #F8FAFC;
   --bg-card:   #FFFFFF;
   --bg-alt:    #F1F5F9;
@@ -21,7 +13,6 @@
   --text-3:    #6B7280;
   --text-4:    #9CA3AF;
 
-  /* ── ACCENTS (identical in both themes) ─────────────── */
   --accent-blue:       #38BDF8;
   --accent-blue-hover: #0EA5E9;
   --accent-blue-press: #0284C7;
@@ -36,7 +27,6 @@
   --glow-red:   0 0 0 1px rgba(239,68,68,.35),  0 4px 16px rgba(239,68,68,.35);
   --glow-green: 0 0 0 1px rgba(74,222,128,.35), 0 4px 16px rgba(74,222,128,.35);
 
-  /* ── RADIUS / SHADOW SCALE ──────────────────────────── */
   --r-btn:   10px;
   --r-input: 10px;
   --r-card:  16px;
@@ -46,13 +36,9 @@
   --sh-md: 0 4px 12px rgba(17,24,39,.08);
   --sh-lg: 0 12px 32px rgba(17,24,39,.12);
 
-  /* ── MOTION ──────────────────────────────────────────── */
   --dur: 250ms;
   --ease: cubic-bezier(.22,1,.36,1);
 
-  /* ── LEGACY ALIASES — every old color name used across the
-     templates (orange, tan, mint, gold, sage, green…) now
-     resolves to the spec's blue/red/green so nothing breaks. */
   --orange: var(--accent-blue); --orange-dark: var(--accent-blue-hover); --orange-light: var(--accent-blue);
   --orange-glow: var(--accent-blue); --orange-pale: var(--bg-alt);
   --mint: var(--accent-blue); --mint-dark: var(--accent-blue-hover); --mint-deep: var(--accent-blue-press);
@@ -71,7 +57,6 @@
   --border-color: var(--border); --bg-base: var(--bg); --cream: var(--bg); --bg-deep: #0F172A;
 }
 
-/* ── DARK THEME ────────────────────────────────────────── */
 [data-theme="dark"] {
   --bg:        #0F172A;
   --bg-card:   #1F2937;
@@ -92,7 +77,6 @@
   --border-color: var(--border); --bg-deep: #05070c;
 }
 
-/* ── Respect reduced-motion preference (spec: accessibility) ── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
 }

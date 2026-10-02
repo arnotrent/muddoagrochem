@@ -6,13 +6,6 @@ img { max-width:100%; height:auto; display:block; }
 
 @media (max-width:700px) { .stack-mobile{ grid-template-columns:1fr !important; } }
 
-/* ══════════════════════════════════════════════════════════
-   GENERIC "RESPONSIVE GRID" UTILITIES
-   Add these classes alongside an existing inline
-   `style="display:grid;grid-template-columns:..."` and this file
-   will force a single column below the given breakpoint — no need
-   to touch the inline desktop layout at all.
-══════════════════════════════════════════════════════════ */
 @media (max-width:900px) {
   .rgrid-2, .rgrid-3, .rgrid-sidebar { grid-template-columns:1fr !important; }
   .rgrid-4 { grid-template-columns:1fr 1fr !important; }
@@ -24,9 +17,6 @@ img { max-width:100%; height:auto; display:block; }
 @media (max-width:900px) { .kpi-grid{ grid-template-columns:1fr 1fr !important; } }
 @media (max-width:480px) { .kpi-grid{ grid-template-columns:1fr !important; } }
 
-/* ══════════════════════════════════════════════════════════
-   ADMIN + AGENT PANELS ON MOBILE
-══════════════════════════════════════════════════════════ */
 @media (max-width:767px) {
   .admin-sidebar{ display:none; }
   .admin-sidebar.mobile-open{
@@ -46,18 +36,6 @@ img { max-width:100%; height:auto; display:block; }
   .product-card-img{ height:190px !important; }
 }
 
-/* ══════════════════════════════════════════════════════════
-   CHAT — MOBILE MASTER/DETAIL NAVIGATION + THE REAL SCROLL FIX
-   Below 767px the contact list and the open conversation can't both
-   fit side by side, so show ONE at a time (chat.js toggles
-   `.chat-mobile-conversation-open`, wires #chatBackBtn to undo it).
-
-   IMPORTANT: `.chat-layout` must have a *definite* height on mobile,
-   not `height:auto`. `auto` was the actual cause of messages being
-   stuck "below the view level" — it let the whole box grow with
-   content instead of giving `.chat-msgs-wrap` a fixed region to
-   scroll inside, so the page grew instead of the chat scrolling.
-══════════════════════════════════════════════════════════ */
 @media (max-width:767px) {
   .chat-layout{
     grid-template-columns:1fr !important;
